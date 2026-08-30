@@ -199,7 +199,7 @@ const INITIAL_ENROLLMENTS = [
     priceMode: 'Preço Aluno (R$ 1.650,00)',
     totalAmount: 1650,
     enrollmentDate: '2026-02-15',
-    status: 'active', // active, canceled, locked
+    status: 'active',
     createdAt: new Date().toISOString()
   },
   {
@@ -234,11 +234,11 @@ const INITIAL_INSTALLMENTS = [
     totalInstallments: 3,
     amount: 550,
     dueDate: '2026-02-20',
-    status: 'paid', // paid, pending, overdue, canceled
+    status: 'paid',
     paidAt: '2026-02-19',
     paymentMethod: 'PIX',
     notes: 'Pago via PIX com comprovante anexado',
-    receiptUrl: 'https://exemplo.com/comprovante1.pdf',
+    receiptUrl: '',
     createdAt: new Date().toISOString()
   },
   {
@@ -298,7 +298,7 @@ const INITIAL_INSTALLMENTS = [
     totalInstallments: 3,
     amount: 650,
     dueDate: '2026-03-25',
-    status: 'overdue', // vencida
+    status: 'overdue',
     paidAt: null,
     paymentMethod: 'Cartão',
     notes: 'Tentativa de cobrança pendente',
@@ -754,7 +754,6 @@ export default function App() {
 
         <main className="flex-1 w-full pb-20 sm:pb-8 px-4 sm:px-0">
           
-          {}
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fade-in">
               {financialMetrics.overdueIncome > 0 && (
@@ -1248,7 +1247,7 @@ export default function App() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Catálogo de Cursos & Turmas</h2>
-                  <p className="text-xs text-slate-500">Instâncias de turmas, tabela de preços (PIX/Aluno/Cartão) e corpo docente</p>
+                  <p className="text-xs text-slate-500">Cursos base cadastrados e instâncias de turmas ativas</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1274,8 +1273,40 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-bold text-slate-900 text-base">Turmas em Andamento e Previstas</h3>
+              {/* Seção 1: Cursos Base (Catálogo) */}
+              <div className="space-y-3">
+                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Cursos Base Cadastrados no Catálogo</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {courses.map(course => (
+                    <div key={course.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="font-bold text-slate-900 text-sm leading-tight">{course.name}</h4>
+                          <button
+                            onClick={() => {
+                              setEditingCourse(course);
+                              setModalCourseOpen(true);
+                            }}
+                            className="p-1 text-slate-400 hover:text-indigo-600"
+                            title="Editar Curso"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-500 line-clamp-2 mb-3">{course.description || 'Sem descrição cadastrada.'}</p>
+                      </div>
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Carga Horária:</span>
+                        <span className="font-bold text-indigo-600">{course.workloadHours}h</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Seção 2: Turmas */}
+              <div className="space-y-3 pt-4">
+                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Turmas Abertas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {cohorts.map(cohort => {
                     const course = courses.find(c => c.id === cohort.courseId);
@@ -1353,9 +1384,7 @@ export default function App() {
                             <strong>{enrolledCount}</strong> matriculado(s) | <strong className="text-emerald-600">{adimplentesCount}</strong> adimplente(s)
                           </span>
                           <button
-                            onClick={() => {
-                              setModalEnrollmentOpen(true);
-                            }}
+                            onClick={() => setModalEnrollmentOpen(true)}
                             className="font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                           >
                             <Plus className="w-3.5 h-3.5" />
