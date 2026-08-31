@@ -142,7 +142,6 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [financeFilter, setFinanceFilter] = useState('all');
 
-  // Persistence to localStorage
   useEffect(() => { localStorage.setItem('merkaba_students', JSON.stringify(students)); }, [students]);
   useEffect(() => { localStorage.setItem('merkaba_teachers', JSON.stringify(teachers)); }, [teachers]);
   useEffect(() => { localStorage.setItem('merkaba_courses', JSON.stringify(courses)); }, [courses]);
@@ -389,7 +388,6 @@ export default function App() {
         </div>
       </header>
 
-      {}
       <div className="flex-1 flex max-w-7xl w-full mx-auto px-0 sm:px-4 lg:px-8 py-0 sm:py-6">
         <aside className="hidden md:flex flex-col w-64 pr-6 shrink-0">
           <nav className="space-y-1.5 sticky top-24">
@@ -474,7 +472,6 @@ export default function App() {
           </div>
         )}
 
-        {}
         <main className="flex-1 w-full pb-20 sm:pb-8 px-4 sm:px-0">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
@@ -1557,7 +1554,7 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
     for (let i = 1; i <= count; i++) {
       const d = new Date(baseDate);
       d.setMonth(d.getMonth() + (i - 1));
-      list.path({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
+      list.push({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
     }
     setCustomInstallments(list);
   }, [basePrice, numInstallments, enrollmentDate]);
