@@ -95,19 +95,6 @@ const INITIAL_STUDENTS = [
     birthDate: '1998-09-20',
     enrolledSince: '2025-02-10',
     createdAt: new Date().toISOString()
-  },
-  {
-    id: 'alu-03',
-    name: 'Camila Fernandes',
-    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    contactEmail: 'camila.fernandes@empresa.com.br',
-    googleEmail: 'camila.f.aulas@gmail.com',
-    phone: '31976543210',
-    cpf: '345.678.901-22',
-    address: 'Rua dos Inconfidentes, 400 - Belo Horizonte/MG',
-    birthDate: '2000-11-05',
-    enrolledSince: '2023-08-01',
-    createdAt: new Date().toISOString()
   }
 ];
 
@@ -145,14 +132,10 @@ const INITIAL_COURSES = [
     bannerUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600',
     description: 'Curso prático com metodologias ativas, liderança executiva e finanças corporativas.',
     workloadHours: 120,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'cur-02',
-    name: 'Inteligência de Mercado & Análise de Dados',
-    bannerUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600',
-    description: 'Domínio de métricas, business intelligence, visualização e tomada de decisão orientada a dados.',
-    workloadHours: 80,
+    teachers: [
+      { teacherId: 'prof-01', repassPerStudent: 350 },
+      { teacherId: 'prof-02', repassPerStudent: 250 }
+    ],
     createdAt: new Date().toISOString()
   }
 ];
@@ -173,21 +156,6 @@ const INITIAL_COHORTS = [
       { teacherId: 'prof-02', repassPerStudent: 250 }
     ],
     createdAt: new Date().toISOString()
-  },
-  {
-    id: 'turma-02',
-    courseId: 'cur-02',
-    name: 'Turma Noturna 2026 - Terças e Quintas',
-    startDate: '2026-04-14',
-    endDate: '2026-08-20',
-    status: 'Inscrições Abertas',
-    pricePix: 1400,
-    priceStudent: 1300,
-    priceCard: 1550,
-    teachers: [
-      { teacherId: 'prof-02', repassPerStudent: 400 }
-    ],
-    createdAt: new Date().toISOString()
   }
 ];
 
@@ -199,26 +167,6 @@ const INITIAL_ENROLLMENTS = [
     priceMode: 'Preço Aluno (R$ 1.650,00)',
     totalAmount: 1650,
     enrollmentDate: '2026-02-15',
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'mat-02',
-    studentId: 'alu-02',
-    cohortId: 'turma-01',
-    priceMode: 'Preço Cartão (R$ 1.950,00)',
-    totalAmount: 1950,
-    enrollmentDate: '2026-02-20',
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'mat-03',
-    studentId: 'alu-03',
-    cohortId: 'turma-02',
-    priceMode: 'Preço PIX (R$ 1.400,00)',
-    totalAmount: 1400,
-    enrollmentDate: '2026-03-01',
     status: 'active',
     createdAt: new Date().toISOString()
   }
@@ -240,134 +188,18 @@ const INITIAL_INSTALLMENTS = [
     notes: 'Pago via PIX com comprovante anexado',
     receiptUrl: '',
     createdAt: new Date().toISOString()
-  },
-  {
-    id: 'parc-02',
-    enrollmentId: 'mat-01',
-    studentId: 'alu-01',
-    cohortId: 'turma-01',
-    installmentNumber: 2,
-    totalInstallments: 3,
-    amount: 550,
-    dueDate: '2026-03-20',
-    status: 'paid',
-    paidAt: '2026-03-20',
-    paymentMethod: 'PIX',
-    notes: 'Confirmado no extrato bancário',
-    receiptUrl: '',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'parc-03',
-    enrollmentId: 'mat-01',
-    studentId: 'alu-01',
-    cohortId: 'turma-01',
-    installmentNumber: 3,
-    totalInstallments: 3,
-    amount: 550,
-    dueDate: '2026-04-20',
-    status: 'pending',
-    paidAt: null,
-    paymentMethod: 'PIX',
-    notes: '',
-    receiptUrl: '',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'parc-04',
-    enrollmentId: 'mat-02',
-    studentId: 'alu-02',
-    cohortId: 'turma-01',
-    installmentNumber: 1,
-    totalInstallments: 3,
-    amount: 650,
-    dueDate: '2026-02-25',
-    status: 'paid',
-    paidAt: '2026-02-25',
-    paymentMethod: 'Cartão',
-    notes: 'Recibo Stripe/Gateway',
-    receiptUrl: '',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'parc-05',
-    enrollmentId: 'mat-02',
-    studentId: 'alu-02',
-    cohortId: 'turma-01',
-    installmentNumber: 2,
-    totalInstallments: 3,
-    amount: 650,
-    dueDate: '2026-03-25',
-    status: 'overdue',
-    paidAt: null,
-    paymentMethod: 'Cartão',
-    notes: 'Tentativa de cobrança pendente',
-    receiptUrl: '',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'parc-06',
-    enrollmentId: 'mat-02',
-    studentId: 'alu-02',
-    cohortId: 'turma-01',
-    installmentNumber: 3,
-    totalInstallments: 3,
-    amount: 650,
-    dueDate: '2026-04-25',
-    status: 'pending',
-    paidAt: null,
-    paymentMethod: 'Cartão',
-    notes: '',
-    receiptUrl: '',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'parc-07',
-    enrollmentId: 'mat-03',
-    studentId: 'alu-03',
-    cohortId: 'turma-02',
-    installmentNumber: 1,
-    totalInstallments: 1,
-    amount: 1400,
-    dueDate: '2026-03-05',
-    status: 'paid',
-    paidAt: '2026-03-04',
-    paymentMethod: 'PIX',
-    notes: 'Pagamento à vista realizado com sucesso',
-    receiptUrl: '',
-    createdAt: new Date().toISOString()
   }
 ];
 
-const INITIAL_TEACHER_PAYOUTS = [
-  {
-    id: 'payout-01',
-    cohortId: 'turma-01',
-    teacherId: 'prof-01',
-    amount: 700,
-    paidAt: '2026-03-28',
-    studentCountAdimplente: 2,
-    status: 'paid',
-    notes: 'Repasse adiantado do primeiro ciclo de aulas'
-  }
-];
-
+const INITIAL_TEACHER_PAYOUTS = [];
 const INITIAL_AUDIT_LOGS = [
   {
     id: 'log-01',
     user: 'Administração Geral',
-    action: 'Criação de Turma',
-    target: 'Turma 2026.1 - Sábados Manhã',
-    details: 'Turma criada com 2 professores alocados',
-    timestamp: '2026-02-01 10:30'
-  },
-  {
-    id: 'log-02',
-    user: 'Administração Geral',
-    action: 'Baixa de Parcela',
-    target: 'Mariana Silveira (Parc. 1/3)',
-    details: 'Valor de R$ 550,00 confirmado via PIX',
-    timestamp: '2026-02-19 14:15'
+    action: 'Inicialização',
+    target: 'Sistema ERP',
+    details: 'Banco de dados configurado com sucesso',
+    timestamp: new Date().toLocaleString('pt-BR')
   }
 ];
 
@@ -1273,7 +1105,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Seção 1: Cursos Base (Catálogo) */}
               <div className="space-y-3">
                 <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Cursos Base Cadastrados no Catálogo</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1294,6 +1125,23 @@ export default function App() {
                           </button>
                         </div>
                         <p className="text-xs text-slate-500 line-clamp-2 mb-3">{course.description || 'Sem descrição cadastrada.'}</p>
+                        
+                        <div className="space-y-1 mb-3">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Professores Padrão Vinculados:</span>
+                          {(course.teachers || []).length === 0 ? (
+                            <span className="text-[11px] text-slate-400 italic">Nenhum professor vinculado</span>
+                          ) : (
+                            (course.teachers || []).map((t, idx) => {
+                              const prof = teachers.find(p => p.id === t.teacherId);
+                              return (
+                                <div key={idx} className="flex items-center justify-between text-xs bg-slate-50 px-2 py-1 rounded-lg">
+                                  <span className="font-medium text-slate-700">{prof?.name || 'Professor'}</span>
+                                  <span className="text-indigo-600 font-semibold">{formatBRL(t.repassPerStudent)} / aluno</span>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
                       </div>
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                         <span className="text-slate-500">Carga Horária:</span>
@@ -1304,7 +1152,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Seção 2: Turmas */}
               <div className="space-y-3 pt-4">
                 <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Turmas Abertas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1995,7 +1842,6 @@ export default function App() {
                   placeholder="CPF, CNPJ, E-mail, Telefone ou Chave Aleatória"
                   className="w-full px-3 py-2 border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white font-medium"
                 />
-                <span className="text-[10px] text-emerald-700 block">Campo de texto livre aceitando qualquer formato de chave</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2144,103 +1990,24 @@ export default function App() {
       )}
 
       {modalCourseOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-lg">
-                {editingCourse ? 'Editar Curso' : 'Novo Curso Base (Catálogo)'}
-              </h3>
-              <button onClick={() => setModalCourseOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const courseData = {
-                  id: editingCourse ? editingCourse.id : `cur-${Date.now()}`,
-                  name: formData.get('name'),
-                  bannerUrl: formData.get('bannerUrl') || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600',
-                  description: formData.get('description'),
-                  workloadHours: Number(formData.get('workloadHours') || 0),
-                  createdAt: editingCourse ? editingCourse.createdAt : new Date().toISOString()
-                };
-
-                if (editingCourse) {
-                  setCourses(prev => prev.map(c => c.id === editingCourse.id ? courseData : c));
-                  addAuditLog('Edição de Curso', courseData.name, 'Informações do catálogo alteradas');
-                  showToast('Curso atualizado com sucesso!');
-                } else {
-                  setCourses(prev => [courseData, ...prev]);
-                  addAuditLog('Novo Curso Base', courseData.name, 'Curso cadastrado no catálogo');
-                  showToast('Curso cadastrado com sucesso!');
-                }
-
-                persistItem('courses', courseData);
-                setModalCourseOpen(false);
-              }}
-              className="space-y-3 text-xs"
-            >
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Nome do Curso *</label>
-                <input
-                  name="name"
-                  required
-                  defaultValue={editingCourse?.name || ''}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Carga Horária (horas/aula) *</label>
-                <input
-                  name="workloadHours"
-                  type="number"
-                  required
-                  defaultValue={editingCourse?.workloadHours || 40}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Descrição Detalhada</label>
-                <textarea
-                  name="description"
-                  rows={3}
-                  defaultValue={editingCourse?.description || ''}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                ></textarea>
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">URL do Banner Promocional</label>
-                <input
-                  name="bannerUrl"
-                  defaultValue={editingCourse?.bannerUrl || ''}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setModalCourseOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md"
-                >
-                  Salvar Curso
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <CourseModal
+          teachers={teachers}
+          editingCourse={editingCourse}
+          onClose={() => setModalCourseOpen(false)}
+          onSave={(courseData) => {
+            if (editingCourse) {
+              setCourses(prev => prev.map(c => c.id === editingCourse.id ? courseData : c));
+              addAuditLog('Edição de Curso', courseData.name, 'Informações e professores do catálogo alterados');
+              showToast('Curso atualizado com sucesso!');
+            } else {
+              setCourses(prev => [courseData, ...prev]);
+              addAuditLog('Novo Curso Base', courseData.name, 'Curso cadastrado no catálogo com docentes');
+              showToast('Curso cadastrado com sucesso!');
+            }
+            persistItem('courses', courseData);
+            setModalCourseOpen(false);
+          }}
+        />
       )}
 
       {modalCohortOpen && (
@@ -2305,6 +2072,11 @@ export default function App() {
                     name="courseId"
                     required
                     defaultValue={editingCohort?.courseId || courses[0]?.id}
+                    onChange={(e) => {
+                      const selectedCourse = courses.find(c => c.id === e.target.value);
+                      if (selectedCourse && selectedCourse.teachers && !editingCohort) {
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                   >
                     {courses.map(c => (
@@ -2612,6 +2384,146 @@ export default function App() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CourseModal({ teachers, editingCourse, onClose, onSave }) {
+  const [courseTeachers, setCourseTeachers] = useState(editingCourse?.teachers || []);
+
+  const handleTeacherToggle = (teacherId, checked) => {
+    if (checked) {
+      if (!courseTeachers.some(t => t.teacherId === teacherId)) {
+        setCourseTeachers([...courseTeachers, { teacherId, repassPerStudent: 300 }]);
+      }
+    } else {
+      setCourseTeachers(courseTeachers.filter(t => t.teacherId !== teacherId));
+    }
+  };
+
+  const handleRepassChange = (teacherId, val) => {
+    setCourseTeachers(courseTeachers.map(t => t.teacherId === teacherId ? { ...t, repassPerStudent: Number(val) } : t));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 my-8">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 className="font-bold text-slate-900 text-lg">
+            {editingCourse ? 'Editar Curso Base' : 'Novo Curso Base (Catálogo)'}
+          </h3>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const courseData = {
+              id: editingCourse ? editingCourse.id : `cur-${Date.now()}`,
+              name: formData.get('name'),
+              bannerUrl: formData.get('bannerUrl') || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600',
+              description: formData.get('description'),
+              workloadHours: Number(formData.get('workloadHours') || 0),
+              teachers: courseTeachers,
+              createdAt: editingCourse ? editingCourse.createdAt : new Date().toISOString()
+            };
+            onSave(courseData);
+          }}
+          className="space-y-3 text-xs"
+        >
+          <div>
+            <label className="font-semibold text-slate-700 block mb-1">Nome do Curso *</label>
+            <input
+              name="name"
+              required
+              defaultValue={editingCourse?.name || ''}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-slate-700 block mb-1">Carga Horária (horas/aula) *</label>
+            <input
+              name="workloadHours"
+              type="number"
+              required
+              defaultValue={editingCourse?.workloadHours || 40}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-slate-700 block mb-1">Descrição Detalhada</label>
+            <textarea
+              name="description"
+              rows={2}
+              defaultValue={editingCourse?.description || ''}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            ></textarea>
+          </div>
+
+          <div>
+            <label className="font-semibold text-slate-700 block mb-1">URL do Banner Promocional</label>
+            <input
+              name="bannerUrl"
+              defaultValue={editingCourse?.bannerUrl || ''}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <span className="font-bold text-slate-800 block text-xs">Vincular Professores & Repasse Padrão por Aluno</span>
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+              {teachers.map(t => {
+                const assigned = courseTeachers.find(item => item.teacherId === t.id);
+                return (
+                  <div key={t.id} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!assigned}
+                        onChange={(e) => handleTeacherToggle(t.id, e.target.checked)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      <span className="font-medium text-slate-800">{t.name}</span>
+                    </label>
+                    {assigned && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-slate-400">R$ / aluno:</span>
+                        <input
+                          type="number"
+                          value={assigned.repassPerStudent}
+                          onChange={(e) => handleRepassChange(t.id, e.target.value)}
+                          className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-right font-bold text-indigo-600 bg-white"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md"
+            >
+              Salvar Curso
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
