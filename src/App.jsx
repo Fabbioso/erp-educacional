@@ -69,176 +69,51 @@ if (typeof __firebase_config !== 'undefined' && __firebase_config) {
   }
 }
 
-const INITIAL_STUDENTS = [
-  {
-    id: 'alu-01',
-    name: 'Mariana Silveira',
-    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    contactEmail: 'mariana.contato@gmail.com',
-    googleEmail: 'mariana.silveira.yt@gmail.com',
-    phone: '11987654321',
-    cpf: '123.456.789-00',
-    address: 'Av. Paulista, 1000 - São Paulo/SP',
-    birthDate: '1995-04-12',
-    enrolledSince: '2024-01-15',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'alu-02',
-    name: 'Lucas Gabriel Mendes',
-    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    contactEmail: 'lucas.mendes@outlook.com',
-    googleEmail: 'lucas.mendes.google@gmail.com',
-    phone: '21998877665',
-    cpf: '234.567.890-11',
-    address: 'Rua Barata Ribeiro, 250 - Rio de Janeiro/RJ',
-    birthDate: '1998-09-20',
-    enrolledSince: '2025-02-10',
-    createdAt: new Date().toISOString()
-  }
-];
-
-const INITIAL_TEACHERS = [
-  {
-    id: 'prof-01',
-    name: 'Prof. Dr. Roberto Albuquerque',
-    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    email: 'roberto.albuquerque@edu.com.br',
-    phone: '11991234567',
-    cpf: '987.654.321-99',
-    address: 'Alameda Santos, 850 - SP',
-    birthDate: '1980-03-15',
-    pixKey: 'roberto.albuquerque@edu.com.br (E-mail)',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'prof-02',
-    name: 'Profª. Dra. Beatriz Valença',
-    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
-    email: 'beatriz.valenca@edu.com.br',
-    phone: '11982345678',
-    cpf: '876.543.210-88',
-    address: 'Rua Oscar Freire, 120 - SP',
-    birthDate: '1984-07-22',
-    pixKey: '11982345678 (Telefone)',
-    createdAt: new Date().toISOString()
-  }
-];
-
-const INITIAL_COURSES = [
-  {
-    id: 'cur-01',
-    name: 'Formação Completa em Gestão Estratégica',
-    bannerUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600',
-    description: 'Curso prático com metodologias ativas, liderança executiva e finanças corporativas.',
-    workloadHours: 120,
-    teachers: [
-      { teacherId: 'prof-01', repassPerStudent: 350 },
-      { teacherId: 'prof-02', repassPerStudent: 250 }
-    ],
-    createdAt: new Date().toISOString()
-  }
-];
-
-const INITIAL_COHORTS = [
-  {
-    id: 'turma-01',
-    courseId: 'cur-01',
-    name: 'Turma 2026.1 - Sábados Manhã',
-    startDate: '2026-03-07',
-    endDate: '2026-07-25',
-    status: 'Em Andamento',
-    pricePix: 1800,
-    priceStudent: 1650,
-    priceCard: 1950,
-    teachers: [
-      { teacherId: 'prof-01', repassPerStudent: 350 },
-      { teacherId: 'prof-02', repassPerStudent: 250 }
-    ],
-    createdAt: new Date().toISOString()
-  }
-];
-
-const INITIAL_ENROLLMENTS = [
-  {
-    id: 'mat-01',
-    studentId: 'alu-01',
-    cohortId: 'turma-01',
-    priceMode: 'Preço Aluno (R$ 1.650,00)',
-    totalAmount: 1650,
-    enrollmentDate: '2026-02-15',
-    status: 'active',
-    createdAt: new Date().toISOString()
-  }
-];
-
-const INITIAL_INSTALLMENTS = [
-  {
-    id: 'parc-01',
-    enrollmentId: 'mat-01',
-    studentId: 'alu-01',
-    cohortId: 'turma-01',
-    installmentNumber: 1,
-    totalInstallments: 3,
-    amount: 550,
-    dueDate: '2026-02-20',
-    status: 'paid',
-    paidAt: '2026-02-19',
-    paymentMethod: 'PIX',
-    notes: 'Pago via PIX',
-    receiptUrl: '',
-    createdAt: new Date().toISOString()
-  }
-];
-
-const INITIAL_TEACHER_PAYOUTS = [];
-const INITIAL_AUDIT_LOGS = [];
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [cloudSynced, setCloudSynced] = useState(false);
 
-  // States with localStorage persistence backup
+  // ZERADO: Sem dados de demonstração iniciais conforme solicitado
   const [students, setStudents] = useState(() => {
     const saved = localStorage.getItem('erp_students');
-    return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [teachers, setTeachers] = useState(() => {
     const saved = localStorage.getItem('erp_teachers');
-    return saved ? JSON.parse(saved) : INITIAL_TEACHERS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [courses, setCourses] = useState(() => {
     const saved = localStorage.getItem('erp_courses');
-    return saved ? JSON.parse(saved) : INITIAL_COURSES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [cohorts, setCohorts] = useState(() => {
     const saved = localStorage.getItem('erp_cohorts');
-    return saved ? JSON.parse(saved) : INITIAL_COHORTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [enrollments, setEnrollments] = useState(() => {
     const saved = localStorage.getItem('erp_enrollments');
-    return saved ? JSON.parse(saved) : INITIAL_ENROLLMENTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [installments, setInstallments] = useState(() => {
     const saved = localStorage.getItem('erp_installments');
-    return saved ? JSON.parse(saved) : INITIAL_INSTALLMENTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [teacherPayouts, setTeacherPayouts] = useState(() => {
     const saved = localStorage.getItem('erp_teacherPayouts');
-    return saved ? JSON.parse(saved) : INITIAL_TEACHER_PAYOUTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [auditLogs, setAuditLogs] = useState(() => {
     const saved = localStorage.getItem('erp_auditLogs');
-    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Modal States
@@ -706,49 +581,53 @@ export default function App() {
                   </div>
 
                   <div className="space-y-3">
-                    {cohorts.map(cohort => {
-                      const course = courses.find(c => c.id === cohort.courseId);
-                      const totalStudents = getCohortActiveEnrollmentsCount(cohort.id);
-                      const adimplentes = getCohortAdimplentesCount(cohort.id);
-                      const inadimplentes = totalStudents - adimplentes;
+                    {cohorts.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-6 text-center">Nenhuma turma cadastrada no momento.</p>
+                    ) : (
+                      cohorts.map(cohort => {
+                        const course = courses.find(c => c.id === cohort.courseId);
+                        const totalStudents = getCohortActiveEnrollmentsCount(cohort.id);
+                        const adimplentes = getCohortAdimplentesCount(cohort.id);
+                        const inadimplentes = totalStudents - adimplentes;
 
-                      return (
-                        <div key={cohort.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50/70">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-slate-900 text-sm">{cohort.name}</h4>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                  cohort.status === 'Em Andamento' ? 'bg-indigo-100 text-indigo-700' :
-                                  cohort.status === 'Inscrições Abertas' ? 'bg-emerald-100 text-emerald-700' :
-                                  'bg-slate-200 text-slate-700'
-                                }`}>
-                                  {cohort.status}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-0.5">{course?.name}</p>
-                            </div>
-
-                            <div className="flex items-center gap-4 text-xs">
-                              <div className="text-center">
-                                <span className="text-slate-400 block text-[10px] uppercase font-bold">Matriculados</span>
-                                <span className="font-bold text-slate-800">{totalStudents}</span>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-emerald-500 block text-[10px] uppercase font-bold">Adimplentes</span>
-                                <span className="font-bold text-emerald-600">{adimplentes}</span>
-                              </div>
-                              {inadimplentes > 0 && (
-                                <div className="text-center">
-                                  <span className="text-rose-500 block text-[10px] uppercase font-bold">Inadimplentes</span>
-                                  <span className="font-bold text-rose-600">{inadimplentes}</span>
+                        return (
+                          <div key={cohort.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50/70">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-semibold text-slate-900 text-sm">{cohort.name}</h4>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                    cohort.status === 'Em Andamento' ? 'bg-indigo-100 text-indigo-700' :
+                                    cohort.status === 'Inscrições Abertas' ? 'bg-emerald-100 text-emerald-700' :
+                                    'bg-slate-200 text-slate-700'
+                                  }`}>
+                                    {cohort.status}
+                                  </span>
                                 </div>
-                              )}
+                                <p className="text-xs text-slate-500 mt-0.5">{course?.name}</p>
+                              </div>
+
+                              <div className="flex items-center gap-4 text-xs">
+                                <div className="text-center">
+                                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Matriculados</span>
+                                  <span className="font-bold text-slate-800">{totalStudents}</span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-emerald-500 block text-[10px] uppercase font-bold">Adimplentes</span>
+                                  <span className="font-bold text-emerald-600">{adimplentes}</span>
+                                </div>
+                                {inadimplentes > 0 && (
+                                  <div className="text-center">
+                                    <span className="text-rose-500 block text-[10px] uppercase font-bold">Inadimplentes</span>
+                                    <span className="font-bold text-rose-600">{inadimplentes}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
@@ -777,7 +656,6 @@ export default function App() {
             </div>
           )}
 
-          {}
           {activeTab === 'students' && (
             <div className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
@@ -806,52 +684,55 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {students
-                  .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.cpf?.includes(searchQuery))
-                  .map(student => {
-                    const studentInstallments = installments.filter(i => i.studentId === student.id);
-                    const hasOverdue = studentInstallments.some(i => i.status === 'overdue');
-
-                    return (
-                      <div key={student.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <img src={student.photoUrl} alt={student.name} className="w-12 h-12 rounded-xl object-cover border" />
-                              <div>
-                                <h3 className="font-bold text-slate-900 text-sm">{student.name}</h3>
-                                <span className="text-[11px] text-slate-500">Desde: {student.enrolledSince}</span>
+              {students.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
+                  <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum aluno cadastrado ainda.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {students
+                    .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.cpf?.includes(searchQuery))
+                    .map(student => {
+                      return (
+                        <div key={student.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <img src={student.photoUrl} alt={student.name} className="w-12 h-12 rounded-xl object-cover border" />
+                                <div>
+                                  <h3 className="font-bold text-slate-900 text-sm">{student.name}</h3>
+                                  <span className="text-[11px] text-slate-500">Desde: {student.enrolledSince}</span>
+                                </div>
+                              </div>
+                              <button onClick={() => { setEditingStudent(student); setModalStudentOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="mt-4 space-y-2 bg-slate-50 p-3 rounded-xl border text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">YouTube:</span>
+                                <span className="font-semibold text-rose-600 truncate max-w-[130px]">{student.googleEmail}</span>
                               </div>
                             </div>
-                            <button onClick={() => { setEditingStudent(student); setModalStudentOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
-                              <Edit className="w-4 h-4" />
+                          </div>
+                          <div className="mt-4 pt-3 border-t flex items-center gap-2">
+                            <button
+                              onClick={() => setSelectedStudentForProfile(student)}
+                              className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Abrir Ficha 360°</span>
                             </button>
                           </div>
-                          <div className="mt-4 space-y-2 bg-slate-50 p-3 rounded-xl border text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500">YouTube:</span>
-                              <span className="font-semibold text-rose-600 truncate max-w-[130px]">{student.googleEmail}</span>
-                            </div>
-                          </div>
                         </div>
-                        <div className="mt-4 pt-3 border-t flex items-center gap-2">
-                          <button
-                            onClick={() => setSelectedStudentForProfile(student)}
-                            className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Abrir Ficha 360°</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           )}
 
-          {}
           {activeTab === 'teachers' && (
             <div className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
@@ -868,46 +749,52 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {teachers.map(teacher => (
-                  <div key={teacher.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <img src={teacher.photoUrl} alt={teacher.name} className="w-12 h-12 rounded-xl object-cover border" />
-                          <div>
-                            <h3 className="font-bold text-slate-900 text-sm">{teacher.name}</h3>
-                            <span className="text-[11px] text-slate-500">CPF: {teacher.cpf}</span>
+              {teachers.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
+                  <UserCheck className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum professor cadastrado ainda.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {teachers.map(teacher => (
+                    <div key={teacher.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <img src={teacher.photoUrl} alt={teacher.name} className="w-12 h-12 rounded-xl object-cover border" />
+                            <div>
+                              <h3 className="font-bold text-slate-900 text-sm">{teacher.name}</h3>
+                              <span className="text-[11px] text-slate-500">CPF: {teacher.cpf}</span>
+                            </div>
                           </div>
-                        </div>
-                        <button onClick={() => { setEditingTeacher(teacher); setModalTeacherOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="mt-4 bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[11px] font-bold text-emerald-800 uppercase">Chave PIX</span>
-                          <button
-                            onClick={() => copyToClipboard(teacher.pixKey, 'Chave PIX')}
-                            className="flex items-center gap-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-lg"
-                          >
-                            <Copy className="w-3 h-3" />
-                            <span>Copiar</span>
+                          <button onClick={() => { setEditingTeacher(teacher); setModalTeacherOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
+                            <Edit className="w-4 h-4" />
                           </button>
                         </div>
-                        <p className="font-mono text-xs text-emerald-950 font-semibold break-all bg-white p-2 rounded-lg border border-emerald-100">
-                          {teacher.pixKey}
-                        </p>
+
+                        <div className="mt-4 bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[11px] font-bold text-emerald-800 uppercase">Chave PIX</span>
+                            <button
+                              onClick={() => copyToClipboard(teacher.pixKey, 'Chave PIX')}
+                              className="flex items-center gap-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-lg"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>Copiar</span>
+                            </button>
+                          </div>
+                          <p className="font-mono text-xs text-emerald-950 font-semibold break-all bg-white p-2 rounded-lg border border-emerald-100">
+                            {teacher.pixKey}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {}
           {activeTab === 'courses' && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
@@ -933,84 +820,89 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Seção Cursos Base */}
               <div className="space-y-3">
                 <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Cursos Base Cadastrados</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {courses.map(course => (
-                    <div key={course.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h4 className="font-bold text-slate-900 text-sm">{course.name}</h4>
-                          <button onClick={() => { setEditingCourse(course); setModalCourseOpen(true); }} className="p-1 text-slate-400 hover:text-indigo-600">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <p className="text-xs text-slate-500 line-clamp-2 mb-3">{course.description}</p>
-                        
-                        <div className="space-y-1 mb-3">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Professores Vinculados:</span>
-                          {(course.teachers || []).map((t, idx) => {
-                            const prof = teachers.find(p => p.id === t.teacherId);
-                            return (
-                              <div key={idx} className="flex items-center justify-between text-xs bg-slate-50 px-2 py-1 rounded-lg">
-                                <span className="font-medium text-slate-700">{prof?.name || 'Professor'}</span>
-                                <span className="text-indigo-600 font-semibold">{formatBRL(t.repassPerStudent)} / aluno</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className="pt-2 border-t flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Carga Horária:</span>
-                        <span className="font-bold text-indigo-600">{course.workloadHours}h</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Seção Turmas Abertas */}
-              <div className="space-y-3 pt-4">
-                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Turmas Abertas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {cohorts.map(cohort => {
-                    const course = courses.find(c => c.id === cohort.courseId);
-                    const enrolledCount = getCohortActiveEnrollmentsCount(cohort.id);
-                    const adimplentesCount = getCohortAdimplentesCount(cohort.id);
-
-                    return (
-                      <div key={cohort.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+                {courses.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-4">Nenhum curso base cadastrado.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {courses.map(course => (
+                      <div key={course.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
                         <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-slate-900 text-base">{cohort.name}</h4>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700">
-                                  {cohort.status}
-                                </span>
-                              </div>
-                              <p className="text-xs text-indigo-600 font-medium mt-0.5">{course?.name}</p>
-                            </div>
-                            <button onClick={() => { setEditingCohort(cohort); setModalCohortOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h4 className="font-bold text-slate-900 text-sm">{course.name}</h4>
+                            <button onClick={() => { setEditingCourse(course); setModalCourseOpen(true); }} className="p-1 text-slate-400 hover:text-indigo-600">
                               <Edit className="w-4 h-4" />
                             </button>
                           </div>
+                          <p className="text-xs text-slate-500 line-clamp-2 mb-3">{course.description}</p>
+                          
+                          <div className="space-y-1 mb-3">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Professores Vinculados:</span>
+                            {(course.teachers || []).map((t, idx) => {
+                              const prof = teachers.find(p => p.id === t.teacherId);
+                              return (
+                                <div key={idx} className="flex items-center justify-between text-xs bg-slate-50 px-2 py-1 rounded-lg">
+                                  <span className="font-medium text-slate-700">{prof?.name || 'Professor'}</span>
+                                  <span className="text-indigo-600 font-semibold">{formatBRL(t.repassPerStudent)} / aluno</span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs">
-                          <span className="text-slate-600">
-                            <strong>{enrolledCount}</strong> matriculado(s) | <strong className="text-emerald-600">{adimplentesCount}</strong> adimplente(s)
-                          </span>
+                        <div className="pt-2 border-t flex items-center justify-between text-xs">
+                          <span className="text-slate-500">Carga Horária:</span>
+                          <span className="font-bold text-indigo-600">{course.workloadHours}h</span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3 pt-4">
+                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Turmas Abertas</h3>
+                {cohorts.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-4">Nenhuma turma aberta.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {cohorts.map(cohort => {
+                      const course = courses.find(c => c.id === cohort.courseId);
+                      const enrolledCount = getCohortActiveEnrollmentsCount(cohort.id);
+                      const adimplentesCount = getCohortAdimplentesCount(cohort.id);
+
+                      return (
+                        <div key={cohort.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-bold text-slate-900 text-base">{cohort.name}</h4>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700">
+                                    {cohort.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-indigo-600 font-medium mt-0.5">{course?.name}</p>
+                              </div>
+                              <button onClick={() => { setEditingCohort(cohort); setModalCohortOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs">
+                            <span className="text-slate-600">
+                              <strong>{enrolledCount}</strong> matriculado(s) | <strong className="text-emerald-600">{adimplentesCount}</strong> adimplente(s)
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {}
           {activeTab === 'finance' && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
@@ -1020,7 +912,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Tabela de Contas a Receber */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="font-bold text-slate-900 text-sm">Entradas / Mensalidades dos Alunos</h3>
@@ -1038,43 +929,48 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {installments.map(inst => {
-                        const student = students.find(s => s.id === inst.studentId);
-                        const cohort = cohorts.find(c => c.id === inst.cohortId);
+                      {installments.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="py-8 text-center text-slate-400">Nenhum lançamento financeiro registrado.</td>
+                        </tr>
+                      ) : (
+                        installments.map(inst => {
+                          const student = students.find(s => s.id === inst.studentId);
+                          const cohort = cohorts.find(c => c.id === inst.cohortId);
 
-                        return (
-                          <tr key={inst.id} className="hover:bg-slate-50">
-                            <td className="py-3 px-4 font-bold text-slate-900">{student?.name}</td>
-                            <td className="py-3 px-4">{cohort?.name} - Parc. {inst.installmentNumber}/{inst.totalInstallments}</td>
-                            <td className="py-3 px-4 font-bold">{formatBRL(inst.amount)}</td>
-                            <td className="py-3 px-4">{inst.dueDate}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                                inst.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
-                                inst.status === 'overdue' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {inst.status === 'paid' ? 'Paga' : inst.status === 'overdue' ? 'Vencida' : 'A Vencer'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              {inst.status !== 'paid' && inst.status !== 'canceled' && (
-                                <button
-                                  onClick={() => { setSelectedInstallmentForPayment(inst); setModalPaymentOpen(true); }}
-                                  className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg font-semibold text-[11px]"
-                                >
-                                  Dar Baixa
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                          return (
+                            <tr key={inst.id} className="hover:bg-slate-50">
+                              <td className="py-3 px-4 font-bold text-slate-900">{student?.name}</td>
+                              <td className="py-3 px-4">{cohort?.name} - Parc. {inst.installmentNumber}/{inst.totalInstallments} ({inst.paymentMethod})</td>
+                              <td className="py-3 px-4 font-bold">{formatBRL(inst.amount)}</td>
+                              <td className="py-3 px-4">{inst.dueDate}</td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                  inst.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
+                                  inst.status === 'overdue' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {inst.status === 'paid' ? 'Paga' : inst.status === 'overdue' ? 'Vencida' : 'A Vencer'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {inst.status !== 'paid' && inst.status !== 'canceled' && (
+                                  <button
+                                    onClick={() => { setSelectedInstallmentForPayment(inst); setModalPaymentOpen(true); }}
+                                    className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg font-semibold text-[11px]"
+                                  >
+                                    Dar Baixa
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Gestão de Saídas: Repasses a Professores (Com Limite Rigoroso) */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Gestão de Saídas: Repasses a Professores</h3>
@@ -1084,93 +980,95 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {cohorts.map(cohort => {
-                    const adimplentesCount = getCohortAdimplentesCount(cohort.id);
-                    return (
-                      <div key={cohort.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-                        <div className="flex items-center justify-between border-b pb-2">
-                          <h4 className="font-bold text-slate-900 text-sm">{cohort.name}</h4>
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                            {adimplentesCount} adimplentes
-                          </span>
-                        </div>
+                  {cohorts.length === 0 ? (
+                    <p className="text-xs text-slate-400">Nenhuma turma cadastrada para repasses.</p>
+                  ) : (
+                    cohorts.map(cohort => {
+                      const adimplentesCount = getCohortAdimplentesCount(cohort.id);
+                      return (
+                        <div key={cohort.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                          <div className="flex items-center justify-between border-b pb-2">
+                            <h4 className="font-bold text-slate-900 text-sm">{cohort.name}</h4>
+                            <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              {adimplentesCount} adimplentes
+                            </span>
+                          </div>
 
-                        <div className="space-y-2">
-                          {(cohort.teachers || []).map((t, idx) => {
-                            const prof = teachers.find(p => p.id === t.teacherId);
-                            const repasseTotalLiberado = adimplentesCount * Number(t.repassPerStudent || 0);
-                            
-                            // Calcula quanto já foi pago para este professor nesta turma
-                            const alreadyPaidForCohortTeacher = teacherPayouts
-                              .filter(p => p.cohortId === cohort.id && p.teacherId === prof?.id)
-                              .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+                          <div className="space-y-2">
+                            {(cohort.teachers || []).map((t, idx) => {
+                              const prof = teachers.find(p => p.id === t.teacherId);
+                              const repasseTotalLiberado = adimplentesCount * Number(t.repassPerStudent || 0);
+                              
+                              const alreadyPaidForCohortTeacher = teacherPayouts
+                                .filter(p => p.cohortId === cohort.id && p.teacherId === prof?.id)
+                                .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
 
-                            const saldoPendenteProfessor = Math.max(0, repasseTotalLiberado - alreadyPaidForCohortTeacher);
+                              const saldoPendenteProfessor = Math.max(0, repasseTotalLiberado - alreadyPaidForCohortTeacher);
 
-                            return (
-                              <div key={idx} className="bg-white p-3 rounded-xl border flex flex-col justify-between gap-2">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <span className="font-bold text-slate-800 text-xs block">{prof?.name}</span>
-                                    <span className="text-[11px] text-slate-500">Liberado: {formatBRL(repasseTotalLiberado)} | Já Pago: {formatBRL(alreadyPaidForCohortTeacher)}</span>
+                              return (
+                                <div key={idx} className="bg-white p-3 rounded-xl border flex flex-col justify-between gap-2">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <span className="font-bold text-slate-800 text-xs block">{prof?.name}</span>
+                                      <span className="text-[11px] text-slate-500">Liberado: {formatBRL(repasseTotalLiberado)} | Já Pago: {formatBRL(alreadyPaidForCohortTeacher)}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-[10px] text-slate-400 block font-bold">PENDENTE</span>
+                                      <span className="font-bold text-violet-600 text-sm">{formatBRL(saldoPendenteProfessor)}</span>
+                                    </div>
                                   </div>
-                                  <div className="text-right">
-                                    <span className="text-[10px] text-slate-400 block font-bold">PENDENTE</span>
-                                    <span className="font-bold text-violet-600 text-sm">{formatBRL(saldoPendenteProfessor)}</span>
+
+                                  <div className="flex items-center justify-between pt-2 border-t">
+                                    <button
+                                      onClick={() => copyToClipboard(prof?.pixKey || '', 'Chave PIX')}
+                                      className="flex items-center gap-1 text-[11px] font-bold text-emerald-700"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                      <span>Copiar PIX</span>
+                                    </button>
+
+                                    <button
+                                      disabled={saldoPendenteProfessor <= 0}
+                                      onClick={() => {
+                                        if (saldoPendenteProfessor <= 0) {
+                                          showToast('Este repasse já foi quitado integralmente!', 'error');
+                                          return;
+                                        }
+                                        const newPayout = {
+                                          id: `payout-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                                          cohortId: cohort.id,
+                                          teacherId: prof.id,
+                                          amount: saldoPendenteProfessor,
+                                          paidAt: new Date().toISOString().split('T')[0],
+                                          studentCountAdimplente: adimplentesCount,
+                                          status: 'paid',
+                                          notes: `Repasse quitado para ${prof.name}`
+                                        };
+                                        setTeacherPayouts(prev => [newPayout, ...prev]);
+                                        persistItem('teacherPayouts', newPayout);
+                                        addAuditLog('Repasse Quitado', `${prof.name} - ${cohort.name}`, `Valor de ${formatBRL(saldoPendenteProfessor)} pago.`);
+                                        showToast('Repasse pago e saldo atualizado!');
+                                      }}
+                                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all shadow-sm ${
+                                        saldoPendenteProfessor > 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      {saldoPendenteProfessor > 0 ? 'Marcar Saldo como Pago' : 'Quitado'}
+                                    </button>
                                   </div>
                                 </div>
-
-                                <div className="flex items-center justify-between pt-2 border-t">
-                                  <button
-                                    onClick={() => copyToClipboard(prof?.pixKey || '', 'Chave PIX')}
-                                    className="flex items-center gap-1 text-[11px] font-bold text-emerald-700"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                    <span>Copiar PIX</span>
-                                  </button>
-
-                                  <button
-                                    disabled={saldoPendenteProfessor <= 0}
-                                    onClick={() => {
-                                      if (saldoPendenteProfessor <= 0) {
-                                        showToast('Este repasse já foi quitado integralmente!', 'error');
-                                        return;
-                                      }
-                                      const newPayout = {
-                                        id: `payout-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                                        cohortId: cohort.id,
-                                        teacherId: prof.id,
-                                        amount: saldoPendenteProfessor,
-                                        paidAt: new Date().toISOString().split('T')[0],
-                                        studentCountAdimplente: adimplentesCount,
-                                        status: 'paid',
-                                        notes: `Repasse quitado para ${prof.name}`
-                                      };
-                                      setTeacherPayouts(prev => [newPayout, ...prev]);
-                                      persistItem('teacherPayouts', newPayout);
-                                      addAuditLog('Repasse Quitado', `${prof.name} - ${cohort.name}`, `Valor de ${formatBRL(saldoPendenteProfessor)} pago.`);
-                                      showToast('Repasse pago e saldo atualizado!');
-                                    }}
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all shadow-sm ${
-                                      saldoPendenteProfessor > 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                    }`}
-                                  >
-                                    {saldoPendenteProfessor > 0 ? 'Marcar Saldo como Pago' : 'Quitado'}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {}
           {activeTab === 'audit' && (
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
               <div>
@@ -1178,25 +1076,28 @@ export default function App() {
                 <p className="text-xs text-slate-500">Histórico de ações administrativas</p>
               </div>
               <div className="divide-y divide-slate-100">
-                {auditLogs.map(log => (
-                  <div key={log.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">{log.action}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">{log.user}</span>
+                {auditLogs.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-6 text-center">Nenhum registro de auditoria.</p>
+                ) : (
+                  auditLogs.map(log => (
+                    <div key={log.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900">{log.action}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">{log.user}</span>
+                        </div>
+                        <p className="text-slate-600 mt-0.5"><strong>Alvo:</strong> {log.target} &bull; {log.details}</p>
                       </div>
-                      <p className="text-slate-600 mt-0.5"><strong>Alvo:</strong> {log.target} &bull; {log.details}</p>
+                      <span className="text-slate-400 text-[11px]">{log.timestamp}</span>
                     </div>
-                    <span className="text-slate-400 text-[11px]">{log.timestamp}</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}
         </main>
       </div>
 
-      {}
       {modalStudentOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 my-8">
@@ -1522,6 +1423,7 @@ export default function App() {
                   <option value="PIX">PIX</option>
                   <option value="Cartão">Cartão</option>
                   <option value="Boleto">Boleto</option>
+                  <option value="Dinheiro">Dinheiro</option>
                 </select>
               </div>
               <div className="pt-3 border-t flex justify-end gap-2">
@@ -1593,23 +1495,27 @@ function CourseModal({ teachers, editingCourse, onClose, onSave }) {
           <div className="space-y-2 pt-2 border-t">
             <span className="font-bold block text-xs">Vincular Professores & Repasse Padrão</span>
             <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-              {teachers.map(t => {
-                const assigned = courseTeachers.find(item => item.teacherId === t.id);
-                return (
-                  <div key={t.id} className="flex items-center justify-between p-2 bg-slate-50 border rounded-xl">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={!!assigned} onChange={(e) => handleTeacherToggle(t.id, e.target.checked)} className="rounded" />
-                      <span>{t.name}</span>
-                    </label>
-                    {assigned && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-slate-400">R$/aluno:</span>
-                        <input type="number" value={assigned.repassPerStudent} onChange={(e) => handleRepassChange(t.id, e.target.value)} className="w-20 px-2 py-1 border rounded-lg text-right font-bold bg-white" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {teachers.length === 0 ? (
+                <p className="text-slate-400">Nenhum professor cadastrado no sistema.</p>
+              ) : (
+                teachers.map(t => {
+                  const assigned = courseTeachers.find(item => item.teacherId === t.id);
+                  return (
+                    <div key={t.id} className="flex items-center justify-between p-2 bg-slate-50 border rounded-xl">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={!!assigned} onChange={(e) => handleTeacherToggle(t.id, e.target.checked)} className="rounded" />
+                        <span>{t.name}</span>
+                      </label>
+                      {assigned && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-slate-400">R$/aluno:</span>
+                          <input type="number" value={assigned.repassPerStudent} onChange={(e) => handleRepassChange(t.id, e.target.value)} className="w-20 px-2 py-1 border rounded-lg text-right font-bold bg-white" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
           <div className="pt-3 border-t flex justify-end gap-2">
@@ -1627,6 +1533,7 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
   const [selectedCohortId, setSelectedCohortId] = useState(cohorts[0]?.id || '');
   const [enrollmentDate, setEnrollmentDate] = useState(new Date().toISOString().split('T')[0]);
   const [priceMode, setPriceMode] = useState('pix');
+  const [paymentMethod, setPaymentMethod] = useState('PIX');
   const [numInstallments, setNumInstallments] = useState(3);
   
   const currentCohort = cohorts.find(c => c.id === selectedCohortId);
@@ -1654,6 +1561,10 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
   }, [basePrice, numInstallments, enrollmentDate]);
 
   const handleSave = () => {
+    if (!selectedStudentId || !selectedCohortId) {
+      alert('Selecione um aluno e uma turma válidos.');
+      return;
+    }
     const enrollmentId = `mat-${Date.now()}`;
     const enrollment = {
       id: enrollmentId,
@@ -1677,7 +1588,7 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
       dueDate: inst.dueDate,
       status: 'pending',
       paidAt: null,
-      paymentMethod: 'PIX',
+      paymentMethod,
       notes: '',
       receiptUrl: '',
       createdAt: new Date().toISOString()
@@ -1690,20 +1601,31 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl w-full max-w-xl p-6 shadow-2xl space-y-4 my-8">
         <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="font-bold text-slate-900 text-lg">Matrícula Rápida</h3>
+          <h3 className="font-bold text-slate-900 text-lg">Matrícula Rápida & Forma de Pagamento</h3>
           <button onClick={onClose} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-3 text-xs">
           <div>
             <label className="font-semibold block mb-1">Aluno *</label>
             <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white">
+              {students.length === 0 ? <option value="">Nenhum aluno cadastrado</option> : null}
               {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
             <label className="font-semibold block mb-1">Turma *</label>
             <select value={selectedCohortId} onChange={e => setSelectedCohortId(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white">
+              {cohorts.length === 0 ? <option value="">Nenhuma turma cadastrada</option> : null}
               {cohorts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="font-semibold block mb-1">Forma de Pagamento *</label>
+            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white font-bold">
+              <option value="PIX">PIX</option>
+              <option value="Cartão">Cartão de Crédito / Débito</option>
+              <option value="Boleto">Boleto Bancário</option>
+              <option value="Dinheiro">Dinheiro</option>
             </select>
           </div>
           <div className="pt-3 border-t flex justify-end gap-2">
