@@ -77,42 +77,42 @@ export default function App() {
 
   // ZERADO: Sem dados de demonstração iniciais conforme solicitado
   const [students, setStudents] = useState(() => {
-    const saved = localStorage.getItem('erp_students');
+    const saved = localStorage.getItem('merkaba_students');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [teachers, setTeachers] = useState(() => {
-    const saved = localStorage.getItem('erp_teachers');
+    const saved = localStorage.getItem('merkaba_teachers');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [courses, setCourses] = useState(() => {
-    const saved = localStorage.getItem('erp_courses');
+    const saved = localStorage.getItem('merkaba_courses');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [cohorts, setCohorts] = useState(() => {
-    const saved = localStorage.getItem('erp_cohorts');
+    const saved = localStorage.getItem('merkaba_cohorts');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [enrollments, setEnrollments] = useState(() => {
-    const saved = localStorage.getItem('erp_enrollments');
+    const saved = localStorage.getItem('merkaba_enrollments');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [installments, setInstallments] = useState(() => {
-    const saved = localStorage.getItem('erp_installments');
+    const saved = localStorage.getItem('merkaba_installments');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [teacherPayouts, setTeacherPayouts] = useState(() => {
-    const saved = localStorage.getItem('erp_teacherPayouts');
+    const saved = localStorage.getItem('merkaba_teacherPayouts');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [auditLogs, setAuditLogs] = useState(() => {
-    const saved = localStorage.getItem('erp_auditLogs');
+    const saved = localStorage.getItem('merkaba_auditLogs');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -142,14 +142,15 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [financeFilter, setFinanceFilter] = useState('all');
 
-  useEffect(() => { localStorage.setItem('erp_students', JSON.stringify(students)); }, [students]);
-  useEffect(() => { localStorage.setItem('erp_teachers', JSON.stringify(teachers)); }, [teachers]);
-  useEffect(() => { localStorage.setItem('erp_courses', JSON.stringify(courses)); }, [courses]);
-  useEffect(() => { localStorage.setItem('erp_cohorts', JSON.stringify(cohorts)); }, [cohorts]);
-  useEffect(() => { localStorage.setItem('erp_enrollments', JSON.stringify(enrollments)); }, [enrollments]);
-  useEffect(() => { localStorage.setItem('erp_installments', JSON.stringify(installments)); }, [installments]);
-  useEffect(() => { localStorage.setItem('erp_teacherPayouts', JSON.stringify(teacherPayouts)); }, [teacherPayouts]);
-  useEffect(() => { localStorage.setItem('erp_auditLogs', JSON.stringify(auditLogs)); }, [auditLogs]);
+  // Persistence to localStorage
+  useEffect(() => { localStorage.setItem('merkaba_students', JSON.stringify(students)); }, [students]);
+  useEffect(() => { localStorage.setItem('merkaba_teachers', JSON.stringify(teachers)); }, [teachers]);
+  useEffect(() => { localStorage.setItem('merkaba_courses', JSON.stringify(courses)); }, [courses]);
+  useEffect(() => { localStorage.setItem('merkaba_cohorts', JSON.stringify(cohorts)); }, [cohorts]);
+  useEffect(() => { localStorage.setItem('merkaba_enrollments', JSON.stringify(enrollments)); }, [enrollments]);
+  useEffect(() => { localStorage.setItem('merkaba_installments', JSON.stringify(installments)); }, [installments]);
+  useEffect(() => { localStorage.setItem('merkaba_teacherPayouts', JSON.stringify(teacherPayouts)); }, [teacherPayouts]);
+  useEffect(() => { localStorage.setItem('merkaba_auditLogs', JSON.stringify(auditLogs)); }, [auditLogs]);
 
   const showToast = (msg, type = 'success') => {
     setToastMessage({ msg, type });
@@ -366,7 +367,7 @@ export default function App() {
                 <GraduationCap className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="font-bold text-slate-900 text-lg leading-tight">ERP Educacional</h1>
+                <h1 className="font-bold text-slate-900 text-lg leading-tight">Merkaba</h1>
                 <p className="text-xs text-slate-500 hidden sm:block">Painel de Gestão e Administração</p>
               </div>
             </div>
@@ -388,6 +389,7 @@ export default function App() {
         </div>
       </header>
 
+      {}
       <div className="flex-1 flex max-w-7xl w-full mx-auto px-0 sm:px-4 lg:px-8 py-0 sm:py-6">
         <aside className="hidden md:flex flex-col w-64 pr-6 shrink-0">
           <nav className="space-y-1.5 sticky top-24">
@@ -1555,7 +1557,7 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
     for (let i = 1; i <= count; i++) {
       const d = new Date(baseDate);
       d.setMonth(d.getMonth() + (i - 1));
-      list.push({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
+      list.path({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
     }
     setCustomInstallments(list);
   }, [basePrice, numInstallments, enrollmentDate]);
