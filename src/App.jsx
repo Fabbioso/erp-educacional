@@ -191,18 +191,6 @@ const INITIAL_INSTALLMENTS = [
   }
 ];
 
-const INITIAL_TEACHER_PAYOUTS = [];
-const INITIAL_AUDIT_LOGS = [
-  {
-    id: 'log-01',
-    user: 'Administração Geral',
-    action: 'Inicialização',
-    target: 'Sistema ERP',
-    details: 'Banco de dados configurado com sucesso',
-    timestamp: new Date().toLocaleString('pt-BR')
-  }
-];
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -215,8 +203,8 @@ export default function App() {
   const [cohorts, setCohorts] = useState(INITIAL_COHORTS);
   const [enrollments, setEnrollments] = useState(INITIAL_ENROLLMENTS);
   const [installments, setInstallments] = useState(INITIAL_INSTALLMENTS);
-  const [teacherPayouts, setTeacherPayouts] = useState(INITIAL_TEACHER_PAYOUTS);
-  const [auditLogs, setAuditLogs] = useState(INITIAL_AUDIT_LOGS);
+  const [teacherPayouts, setTeacherPayouts] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
 
   const [modalStudentOpen, setModalStudentOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -321,8 +309,8 @@ export default function App() {
     const unsubCohorts = makeSub('cohorts', setCohorts, INITIAL_COHORTS);
     const unsubEnrollments = makeSub('enrollments', setEnrollments, INITIAL_ENROLLMENTS);
     const unsubInstallments = makeSub('installments', setInstallments, INITIAL_INSTALLMENTS);
-    const unsubPayouts = makeSub('teacherPayouts', setTeacherPayouts, INITIAL_TEACHER_PAYOUTS);
-    const unsubLogs = makeSub('auditLogs', setAuditLogs, INITIAL_AUDIT_LOGS);
+    const unsubPayouts = makeSub('teacherPayouts', setTeacherPayouts, []);
+    const unsubLogs = makeSub('auditLogs', setAuditLogs, []);
 
     return () => {
       unsubStudents();
@@ -586,6 +574,7 @@ export default function App() {
 
         <main className="flex-1 w-full pb-20 sm:pb-8 px-4 sm:px-0">
           
+          {}
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fade-in">
               {financialMetrics.overdueIncome > 0 && (
@@ -826,6 +815,7 @@ export default function App() {
             </div>
           )}
 
+          {}
           {activeTab === 'students' && (
             <div className="space-y-5 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
@@ -961,6 +951,7 @@ export default function App() {
             </div>
           )}
 
+          {}
           {activeTab === 'teachers' && (
             <div className="space-y-5 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
@@ -1074,12 +1065,13 @@ export default function App() {
             </div>
           )}
 
+          {}
           {activeTab === 'courses' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Catálogo de Cursos & Turmas</h2>
-                  <p className="text-xs text-slate-500">Cursos base cadastrados e instâncias de turmas ativas</p>
+                  <p className="text-xs text-slate-500">Cursos base com professores vinculados e turmas abertas</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1246,6 +1238,7 @@ export default function App() {
             </div>
           )}
 
+          {}
           {activeTab === 'finance' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
