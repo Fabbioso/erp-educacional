@@ -82,6 +82,19 @@ const INITIAL_STUDENTS = [
     birthDate: '1995-04-12',
     enrolledSince: '2024-01-15',
     createdAt: new Date().toISOString()
+  },
+  {
+    id: 'alu-02',
+    name: 'Lucas Gabriel Mendes',
+    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    contactEmail: 'lucas.mendes@outlook.com',
+    googleEmail: 'lucas.mendes.google@gmail.com',
+    phone: '21998877665',
+    cpf: '234.567.890-11',
+    address: 'Rua Barata Ribeiro, 250 - Rio de Janeiro/RJ',
+    birthDate: '1998-09-20',
+    enrolledSince: '2025-02-10',
+    createdAt: new Date().toISOString()
   }
 ];
 
@@ -97,6 +110,18 @@ const INITIAL_TEACHERS = [
     birthDate: '1980-03-15',
     pixKey: 'roberto.albuquerque@edu.com.br (E-mail)',
     createdAt: new Date().toISOString()
+  },
+  {
+    id: 'prof-02',
+    name: 'Profª. Dra. Beatriz Valença',
+    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+    email: 'beatriz.valenca@edu.com.br',
+    phone: '11982345678',
+    cpf: '876.543.210-88',
+    address: 'Rua Oscar Freire, 120 - SP',
+    birthDate: '1984-07-22',
+    pixKey: '11982345678 (Telefone)',
+    createdAt: new Date().toISOString()
   }
 ];
 
@@ -108,7 +133,8 @@ const INITIAL_COURSES = [
     description: 'Curso prático com metodologias ativas, liderança executiva e finanças corporativas.',
     workloadHours: 120,
     teachers: [
-      { teacherId: 'prof-01', repassPerStudent: 350 }
+      { teacherId: 'prof-01', repassPerStudent: 350 },
+      { teacherId: 'prof-02', repassPerStudent: 250 }
     ],
     createdAt: new Date().toISOString()
   }
@@ -126,7 +152,8 @@ const INITIAL_COHORTS = [
     priceStudent: 1650,
     priceCard: 1950,
     teachers: [
-      { teacherId: 'prof-01', repassPerStudent: 350 }
+      { teacherId: 'prof-01', repassPerStudent: 350 },
+      { teacherId: 'prof-02', repassPerStudent: 250 }
     ],
     createdAt: new Date().toISOString()
   }
@@ -164,12 +191,16 @@ const INITIAL_INSTALLMENTS = [
   }
 ];
 
+const INITIAL_TEACHER_PAYOUTS = [];
+const INITIAL_AUDIT_LOGS = [];
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [cloudSynced, setCloudSynced] = useState(false);
 
+  // States with localStorage persistence backup
   const [students, setStudents] = useState(() => {
     const saved = localStorage.getItem('erp_students');
     return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
@@ -202,12 +233,12 @@ export default function App() {
 
   const [teacherPayouts, setTeacherPayouts] = useState(() => {
     const saved = localStorage.getItem('erp_teacherPayouts');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : INITIAL_TEACHER_PAYOUTS;
   });
 
   const [auditLogs, setAuditLogs] = useState(() => {
     const saved = localStorage.getItem('erp_auditLogs');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
   // Modal States
@@ -236,7 +267,6 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [financeFilter, setFinanceFilter] = useState('all');
 
-  // Sync state changes to localStorage
   useEffect(() => { localStorage.setItem('erp_students', JSON.stringify(students)); }, [students]);
   useEffect(() => { localStorage.setItem('erp_teachers', JSON.stringify(teachers)); }, [teachers]);
   useEffect(() => { localStorage.setItem('erp_courses', JSON.stringify(courses)); }, [courses]);
@@ -294,6 +324,41 @@ export default function App() {
     const unsubAuth = onAuthStateChanged(auth, setUser);
     return () => unsubAuth();
   }, []);
+
+  useEffect(() => {
+    if (!db || !user) return;
+    setCloudSynced(true);
+
+    const makeSub = (colName, setter) => {
+      const q = collection(db, 'artifacts', appId, 'public', 'data', colName);
+      return onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+          const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+          setter(list);
+        }
+      }, (err) => console.warn(`Snapshot error in ${colName}:`, err));
+    };
+
+    const unsubStudents = makeSub('students', setStudents);
+    const unsubTeachers = makeSub('teachers', setTeachers);
+    const unsubCourses = makeSub('courses', setCourses);
+    const unsubCohorts = makeSub('cohorts', setCohorts);
+    const unsubEnrollments = makeSub('enrollments', setEnrollments);
+    const unsubInstallments = makeSub('installments', setInstallments);
+    const unsubPayouts = makeSub('teacherPayouts', setTeacherPayouts);
+    const unsubLogs = makeSub('auditLogs', setAuditLogs);
+
+    return () => {
+      unsubStudents();
+      unsubTeachers();
+      unsubCourses();
+      unsubCohorts();
+      unsubEnrollments();
+      unsubInstallments();
+      unsubPayouts();
+      unsubLogs();
+    };
+  }, [user]);
 
   const persistItem = async (colName, item) => {
     if (db && user) {
@@ -367,18 +432,13 @@ export default function App() {
 
     const updatedInstallments = installments.map(inst => {
       if (inst.enrollmentId === enrollment.id && (inst.status === 'pending' || inst.status === 'overdue')) {
-        const canceledInst = { ...inst, status: 'canceled', notes: `${inst.notes || ''} [Cancelado por encerramento]` };
+        const canceledInst = { ...inst, status: 'canceled', notes: `${inst.notes || ''} [Cancelado]` };
         persistItem('installments', canceledInst);
         return canceledInst;
       }
       return inst;
     });
     setInstallments(updatedInstallments);
-
-    const studentObj = students.find(s => s.id === enrollment.studentId);
-    const cohortObj = cohorts.find(c => c.id === enrollment.cohortId);
-
-    addAuditLog('Cancelamento de Matrícula', `${studentObj?.name || 'Aluno'} - ${cohortObj?.name || 'Turma'}`, 'Matrícula cancelada com sucesso.');
     setModalCancelEnrollmentOpen(false);
     setSelectedEnrollmentToCancel(null);
     showToast('Matrícula cancelada com sucesso.');
@@ -395,9 +455,9 @@ export default function App() {
 
     let msg = '';
     if (type === 'vencida') {
-      msg = `Olá ${student.name}, tudo bem? Constatamos uma pendência da parcela ${installment.installmentNumber}/${installment.totalInstallments} da turma "${cohortObj?.name || 'do curso'}", no valor de ${formatBRL(installment.amount)}, vencida em ${installment.dueDate}. Poderia nos enviar o comprovante?`;
+      msg = `Olá ${student.name}, tudo bem? Constatamos pendência na parcela ${installment.installmentNumber}/${installment.totalInstallments} da turma "${cohortObj?.name || 'do curso'}", no valor de ${formatBRL(installment.amount)}, vencida em ${installment.dueDate}. Poderia nos enviar o comprovante?`;
     } else {
-      msg = `Olá ${student.name}! Passando para lembrar que a sua parcela ${installment.installmentNumber}/${installment.totalInstallments} da turma "${cohortObj?.name || 'do curso'}" no valor de ${formatBRL(installment.amount)} vencerá em ${installment.dueDate}.`;
+      msg = `Olá ${student.name}! Lembramos que a parcela ${installment.installmentNumber}/${installment.totalInstallments} da turma "${cohortObj?.name || 'do curso'}" no valor de ${formatBRL(installment.amount)} vencerá em ${installment.dueDate}.`;
     }
 
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
@@ -407,7 +467,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 animate-fade-in text-sm">
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 text-sm">
           {toastMessage.type === 'error' ? (
             <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
           ) : (
@@ -440,11 +500,11 @@ export default function App() {
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Modo Operacional Ativo
+              {cloudSynced ? 'Nuvem Sincronizada' : 'Modo Operacional'}
             </span>
             <button
               onClick={() => setModalEnrollmentOpen(true)}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-95"
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>Matrícula Rápida</span>
@@ -537,11 +597,10 @@ export default function App() {
           </div>
         )}
 
+        {}
         <main className="flex-1 w-full pb-20 sm:pb-8 px-4 sm:px-0">
-          
-          {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6">
               {financialMetrics.overdueIncome > 0 && (
                 <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
                   <div className="flex items-center gap-3">
@@ -654,7 +713,7 @@ export default function App() {
                       const inadimplentes = totalStudents - adimplentes;
 
                       return (
-                        <div key={cohort.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition-all">
+                        <div key={cohort.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50/70">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                               <div className="flex items-center gap-2">
@@ -687,20 +746,6 @@ export default function App() {
                               )}
                             </div>
                           </div>
-
-                          <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-2 text-slate-600">
-                              <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                              <span>Professores vinculados: {(cohort.teachers || []).length}</span>
-                            </div>
-                            <div className="font-medium text-slate-700">
-                              Repasse gerado: <strong className="text-indigo-600">
-                                {formatBRL(
-                                  (cohort.teachers || []).reduce((acc, t) => acc + (adimplentes * Number(t.repassPerStudent || 0)), 0)
-                                )}
-                              </strong>
-                            </div>
-                          </div>
                         </div>
                       );
                     })}
@@ -713,66 +758,18 @@ export default function App() {
                     <div className="grid grid-cols-2 gap-2.5">
                       <button
                         onClick={() => setModalEnrollmentOpen(true)}
-                        className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 text-left transition-all group"
+                        className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 text-left transition-all"
                       >
-                        <GraduationCap className="w-5 h-5 text-indigo-600 mb-1.5 group-hover:scale-110 transition-transform" />
+                        <GraduationCap className="w-5 h-5 text-indigo-600 mb-1.5" />
                         <span className="text-xs font-semibold text-slate-900 block">Nova Matrícula</span>
-                        <span className="text-[10px] text-slate-500">Com parcelamento</span>
                       </button>
-
                       <button
-                        onClick={() => {
-                          setEditingStudent(null);
-                          setModalStudentOpen(true);
-                        }}
-                        className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 text-left transition-all group"
+                        onClick={() => { setEditingStudent(null); setModalStudentOpen(true); }}
+                        className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 text-left transition-all"
                       >
-                        <Users className="w-5 h-5 text-emerald-600 mb-1.5 group-hover:scale-110 transition-transform" />
+                        <Users className="w-5 h-5 text-emerald-600 mb-1.5" />
                         <span className="text-xs font-semibold text-slate-900 block">Cadastrar Aluno</span>
-                        <span className="text-[10px] text-slate-500">Dados + E-mail YT</span>
                       </button>
-
-                      <button
-                        onClick={() => {
-                          setEditingTeacher(null);
-                          setModalTeacherOpen(true);
-                        }}
-                        className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-200 text-left transition-all group"
-                      >
-                        <UserCheck className="w-5 h-5 text-amber-600 mb-1.5 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-semibold text-slate-900 block">Novo Professor</span>
-                        <span className="text-[10px] text-slate-500">Chave PIX e dados</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setEditingCohort(null);
-                          setModalCohortOpen(true);
-                        }}
-                        className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-violet-50 hover:border-violet-200 text-left transition-all group"
-                      >
-                        <BookOpen className="w-5 h-5 text-violet-600 mb-1.5 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-semibold text-slate-900 block">Criar Turma</span>
-                        <span className="text-[10px] text-slate-500">Tabela de preços</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-bold text-slate-900 text-sm">Últimas Ações ADM</h3>
-                      <button onClick={() => setActiveTab('audit')} className="text-[11px] text-indigo-600 font-semibold">
-                        Histórico
-                      </button>
-                    </div>
-                    <div className="space-y-2.5">
-                      {auditLogs.slice(0, 3).map(log => (
-                        <div key={log.id} className="text-xs border-l-2 border-indigo-500 pl-2.5 py-0.5">
-                          <span className="font-semibold text-slate-800 block">{log.action}: {log.target}</span>
-                          <span className="text-slate-500 text-[11px]">{log.details}</span>
-                          <span className="text-slate-400 text-[10px] block mt-0.5">{log.timestamp}</span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>
@@ -780,31 +777,28 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: STUDENTS */}
+          {}
           {activeTab === 'students' && (
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Gestão de Alunos & Ficha 360°</h2>
-                  <p className="text-xs text-slate-500">E-mail Google/YouTube para liberação de acessos e data retroativa</p>
+                  <p className="text-xs text-slate-500">Gerenciamento de alunos e e-mails do YouTube</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1 sm:w-64">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                     <input
                       type="text"
-                      placeholder="Buscar por nome, CPF, e-mail..."
+                      placeholder="Buscar por nome, CPF..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50"
                     />
                   </div>
                   <button
-                    onClick={() => {
-                      setEditingStudent(null);
-                      setModalStudentOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 shadow-sm"
+                    onClick={() => { setEditingStudent(null); setModalStudentOpen(true); }}
+                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Novo Aluno</span>
@@ -814,94 +808,37 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {students
-                  .filter(s => 
-                    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    s.contactEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    s.googleEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    s.cpf?.includes(searchQuery)
-                  )
+                  .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.cpf?.includes(searchQuery))
                   .map(student => {
-                    const studentEnrollments = enrollments.filter(e => e.studentId === student.id);
                     const studentInstallments = installments.filter(i => i.studentId === student.id);
                     const hasOverdue = studentInstallments.some(i => i.status === 'overdue');
 
                     return (
-                      <div key={student.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                      <div key={student.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                         <div>
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3">
-                              <img
-                                src={student.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
-                                alt={student.name}
-                                className="w-12 h-12 rounded-xl object-cover border border-slate-100 shadow-sm"
-                              />
+                              <img src={student.photoUrl} alt={student.name} className="w-12 h-12 rounded-xl object-cover border" />
                               <div>
-                                <h3 className="font-bold text-slate-900 text-sm leading-tight">{student.name}</h3>
-                                <span className="text-[11px] text-slate-500">Aluno desde: {student.enrolledSince || 'Não inf.'}</span>
+                                <h3 className="font-bold text-slate-900 text-sm">{student.name}</h3>
+                                <span className="text-[11px] text-slate-500">Desde: {student.enrolledSince}</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => {
-                                  setEditingStudent(student);
-                                  setModalStudentOpen(true);
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                            </div>
+                            <button onClick={() => { setEditingStudent(student); setModalStudentOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
+                              <Edit className="w-4 h-4" />
+                            </button>
                           </div>
-
-                          <div className="mt-4 space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+                          <div className="mt-4 space-y-2 bg-slate-50 p-3 rounded-xl border text-xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-500 flex items-center gap-1.5">
-                                <Mail className="w-3.5 h-3.5 text-slate-400" /> Contato:
-                              </span>
-                              <span className="font-medium text-slate-800 truncate max-w-[150px]">{student.contactEmail}</span>
+                              <span className="text-slate-500">YouTube:</span>
+                              <span className="font-semibold text-rose-600 truncate max-w-[130px]">{student.googleEmail}</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500 flex items-center gap-1.5 font-semibold text-rose-600">
-                                <Sparkles className="w-3.5 h-3.5 text-rose-500" /> E-mail YouTube:
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <span className="font-semibold text-slate-900 truncate max-w-[130px]">{student.googleEmail}</span>
-                                <button
-                                  onClick={() => copyToClipboard(student.googleEmail, 'E-mail do YouTube')}
-                                  className="p-1 text-slate-400 hover:text-indigo-600"
-                                >
-                                  <Copy className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500 flex items-center gap-1.5">
-                                <Phone className="w-3.5 h-3.5 text-slate-400" /> WhatsApp:
-                              </span>
-                              <span className="font-medium text-slate-800">{student.phone}</span>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 flex items-center justify-between text-xs">
-                            <span className="text-slate-500">
-                              {studentEnrollments.length} turma(s) vinculada(s)
-                            </span>
-                            {hasOverdue ? (
-                              <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px] flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" /> Inadimplente
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium text-[10px] flex items-center gap-1">
-                                <Check className="w-3 h-3" /> Em dia
-                              </span>
-                            )}
                           </div>
                         </div>
-
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                        <div className="mt-4 pt-3 border-t flex items-center gap-2">
                           <button
                             onClick={() => setSelectedStudentForProfile(student)}
-                            className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                            className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Abrir Ficha 360°</span>
@@ -914,20 +851,17 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: TEACHERS */}
+          {}
           {activeTab === 'teachers' && (
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Corpo Docente & Gestão de Chaves PIX</h2>
-                  <p className="text-xs text-slate-500">Atalho rápido para cópia de PIX e extrato de repasses baseados em adimplência</p>
+                  <h2 className="text-lg font-bold text-slate-900">Corpo Docente & Chaves PIX</h2>
+                  <p className="text-xs text-slate-500">Gerenciamento de professores e chaves PIX</p>
                 </div>
                 <button
-                  onClick={() => {
-                    setEditingTeacher(null);
-                    setModalTeacherOpen(true);
-                  }}
-                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 shadow-sm"
+                  onClick={() => { setEditingTeacher(null); setModalTeacherOpen(true); }}
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Cadastrar Professor</span>
@@ -935,124 +869,63 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {teachers.map(teacher => {
-                  const allocatedCohorts = cohorts.filter(c => (c.teachers || []).some(t => t.teacherId === teacher.id));
-                  
-                  let totalDevido = 0;
-                  allocatedCohorts.forEach(cohort => {
-                    const teacherConfig = (cohort.teachers || []).find(t => t.teacherId === teacher.id);
-                    const adimplentes = getCohortAdimplentesCount(cohort.id);
-                    totalDevido += adimplentes * Number(teacherConfig?.repassPerStudent || 0);
-                  });
-
-                  const totalPago = teacherPayouts
-                    .filter(p => p.teacherId === teacher.id)
-                    .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
-
-                  const saldoPendente = Math.max(0, totalDevido - totalPago);
-
-                  return (
-                    <div key={teacher.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={teacher.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                              alt={teacher.name}
-                              className="w-12 h-12 rounded-xl object-cover border border-slate-100"
-                            />
-                            <div>
-                              <h3 className="font-bold text-slate-900 text-sm leading-tight">{teacher.name}</h3>
-                              <span className="text-[11px] text-slate-500">CPF: {teacher.cpf}</span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setEditingTeacher(teacher);
-                              setModalTeacherOpen(true);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="mt-4 bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[11px] font-bold text-emerald-800 uppercase flex items-center gap-1">
-                              <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Chave PIX Cadastrada
-                            </span>
-                            <button
-                              onClick={() => copyToClipboard(teacher.pixKey, 'Chave PIX do Docente')}
-                              className="flex items-center gap-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-lg transition-all"
-                            >
-                              <Copy className="w-3 h-3" />
-                              <span>Copiar Chave</span>
-                            </button>
-                          </div>
-                          <p className="font-mono text-xs text-emerald-950 font-semibold break-all bg-white/80 p-2 rounded-lg border border-emerald-100 mt-1.5">
-                            {teacher.pixKey || 'Chave não cadastrada'}
-                          </p>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                {teachers.map(teacher => (
+                  <div key={teacher.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <img src={teacher.photoUrl} alt={teacher.name} className="w-12 h-12 rounded-xl object-cover border" />
                           <div>
-                            <span className="text-[10px] text-slate-400 font-bold block">LIBERADO (ADIMP.)</span>
-                            <span className="font-bold text-slate-800">{formatBRL(totalDevido)}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-emerald-600 font-bold block">PAGO</span>
-                            <span className="font-bold text-emerald-600">{formatBRL(totalPago)}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-violet-600 font-bold block">PENDENTE</span>
-                            <span className="font-bold text-violet-600">{formatBRL(saldoPendente)}</span>
+                            <h3 className="font-bold text-slate-900 text-sm">{teacher.name}</h3>
+                            <span className="text-[11px] text-slate-500">CPF: {teacher.cpf}</span>
                           </div>
                         </div>
-                      </div>
-
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="text-slate-500">{allocatedCohorts.length} turma(s) vinculada(s)</span>
-                        <button
-                          onClick={() => setSelectedTeacherForProfile(teacher)}
-                          className="font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                        >
-                          <span>Ver Ficha do Docente</span>
-                          <ChevronRight className="w-4 h-4" />
+                        <button onClick={() => { setEditingTeacher(teacher); setModalTeacherOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
+                          <Edit className="w-4 h-4" />
                         </button>
                       </div>
+
+                      <div className="mt-4 bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] font-bold text-emerald-800 uppercase">Chave PIX</span>
+                          <button
+                            onClick={() => copyToClipboard(teacher.pixKey, 'Chave PIX')}
+                            className="flex items-center gap-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-lg"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>Copiar</span>
+                          </button>
+                        </div>
+                        <p className="font-mono text-xs text-emerald-950 font-semibold break-all bg-white p-2 rounded-lg border border-emerald-100">
+                          {teacher.pixKey}
+                        </p>
+                      </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* TAB 4: COURSES & COHORTS */}
+          {}
           {activeTab === 'courses' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Catálogo de Cursos & Turmas</h2>
-                  <p className="text-xs text-slate-500">Cursos base com professores vinculados e turmas abertas</p>
+                  <p className="text-xs text-slate-500">Gerencie seus cursos base e turmas abertas</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
-                      setEditingCourse(null);
-                      setModalCourseOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                    onClick={() => { setEditingCourse(null); setModalCourseOpen(true); }}
+                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Novo Curso Base</span>
                   </button>
                   <button
-                    onClick={() => {
-                      setEditingCohort(null);
-                      setModalCohortOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all"
+                    onClick={() => { setEditingCohort(null); setModalCohortOpen(true); }}
+                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-sm"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Abrir Nova Turma</span>
@@ -1060,44 +933,35 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Seção Cursos Base */}
               <div className="space-y-3">
-                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Cursos Base Cadastrados no Catálogo</h3>
+                <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Cursos Base Cadastrados</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {courses.map(course => (
                     <div key={course.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
                       <div>
                         <div className="flex items-start justify-between gap-2 mb-2">
-                          <h4 className="font-bold text-slate-900 text-sm leading-tight">{course.name}</h4>
-                          <button
-                            onClick={() => {
-                              setEditingCourse(course);
-                              setModalCourseOpen(true);
-                            }}
-                            className="p-1 text-slate-400 hover:text-indigo-600"
-                          >
+                          <h4 className="font-bold text-slate-900 text-sm">{course.name}</h4>
+                          <button onClick={() => { setEditingCourse(course); setModalCourseOpen(true); }} className="p-1 text-slate-400 hover:text-indigo-600">
                             <Edit className="w-4 h-4" />
                           </button>
                         </div>
-                        <p className="text-xs text-slate-500 line-clamp-2 mb-3">{course.description || 'Sem descrição.'}</p>
+                        <p className="text-xs text-slate-500 line-clamp-2 mb-3">{course.description}</p>
                         
                         <div className="space-y-1 mb-3">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Professores Padrão Vinculados:</span>
-                          {(course.teachers || []).length === 0 ? (
-                            <span className="text-[11px] text-slate-400 italic">Nenhum professor vinculado</span>
-                          ) : (
-                            (course.teachers || []).map((t, idx) => {
-                              const prof = teachers.find(p => p.id === t.teacherId);
-                              return (
-                                <div key={idx} className="flex items-center justify-between text-xs bg-slate-50 px-2 py-1 rounded-lg">
-                                  <span className="font-medium text-slate-700">{prof?.name || 'Professor'}</span>
-                                  <span className="text-indigo-600 font-semibold">{formatBRL(t.repassPerStudent)} / aluno</span>
-                                </div>
-                              );
-                            })
-                          )}
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Professores Vinculados:</span>
+                          {(course.teachers || []).map((t, idx) => {
+                            const prof = teachers.find(p => p.id === t.teacherId);
+                            return (
+                              <div key={idx} className="flex items-center justify-between text-xs bg-slate-50 px-2 py-1 rounded-lg">
+                                <span className="font-medium text-slate-700">{prof?.name || 'Professor'}</span>
+                                <span className="text-indigo-600 font-semibold">{formatBRL(t.repassPerStudent)} / aluno</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <div className="pt-2 border-t flex items-center justify-between text-xs">
                         <span className="text-slate-500">Carga Horária:</span>
                         <span className="font-bold text-indigo-600">{course.workloadHours}h</span>
                       </div>
@@ -1106,6 +970,7 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Seção Turmas Abertas */}
               <div className="space-y-3 pt-4">
                 <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Turmas Abertas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1121,75 +986,21 @@ export default function App() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <h4 className="font-bold text-slate-900 text-base">{cohort.name}</h4>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                                  cohort.status === 'Em Andamento' ? 'bg-indigo-100 text-indigo-700' :
-                                  cohort.status === 'Inscrições Abertas' ? 'bg-emerald-100 text-emerald-700' :
-                                  'bg-slate-100 text-slate-700'
-                                }`}>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700">
                                   {cohort.status}
                                 </span>
                               </div>
                               <p className="text-xs text-indigo-600 font-medium mt-0.5">{course?.name}</p>
                             </div>
-                            <button
-                              onClick={() => {
-                                setEditingCohort(cohort);
-                                setModalCohortOpen(true);
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100"
-                            >
+                            <button onClick={() => { setEditingCohort(cohort); setModalCohortOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600">
                               <Edit className="w-4 h-4" />
                             </button>
                           </div>
-
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
-                            <div><span className="text-slate-400">Início:</span> <strong>{cohort.startDate}</strong></div>
-                            <div><span className="text-slate-400">Término:</span> <strong>{cohort.endDate}</strong></div>
-                          </div>
-
-                          <div className="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5">Tabela de Preços à Vista</span>
-                            <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                              <div className="bg-white p-1.5 rounded-lg border border-slate-200/60">
-                                <span className="text-[10px] text-slate-400 block">PIX</span>
-                                <span className="font-bold text-slate-800">{formatBRL(cohort.pricePix)}</span>
-                              </div>
-                              <div className="bg-white p-1.5 rounded-lg border border-slate-200/60">
-                                <span className="text-[10px] text-slate-400 block">Aluno</span>
-                                <span className="font-bold text-indigo-600">{formatBRL(cohort.priceStudent)}</span>
-                              </div>
-                              <div className="bg-white p-1.5 rounded-lg border border-slate-200/60">
-                                <span className="text-[10px] text-slate-400 block">Cartão</span>
-                                <span className="font-bold text-slate-800">{formatBRL(cohort.priceCard)}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 space-y-1.5">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Corpo Docente Alocado</span>
-                            {(cohort.teachers || []).map((t, idx) => {
-                              const profObj = teachers.find(p => p.id === t.teacherId);
-                              return (
-                                <div key={idx} className="flex items-center justify-between text-xs bg-slate-50/80 px-2.5 py-1.5 rounded-lg">
-                                  <span className="font-medium text-slate-700">{profObj?.name || 'Professor'}</span>
-                                  <span className="text-slate-500 font-semibold">{formatBRL(t.repassPerStudent)} / aluno</span>
-                                </div>
-                              );
-                            })}
-                          </div>
                         </div>
-
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs">
                           <span className="text-slate-600">
                             <strong>{enrolledCount}</strong> matriculado(s) | <strong className="text-emerald-600">{adimplentesCount}</strong> adimplente(s)
                           </span>
-                          <button
-                            onClick={() => setModalEnrollmentOpen(true)}
-                            className="font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Matricular Aluno</span>
-                          </button>
                         </div>
                       </div>
                     );
@@ -1199,139 +1010,76 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: FINANCE */}
+          {}
           {activeTab === 'finance' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Contabilidade & Gestão Financeira</h2>
-                  <p className="text-xs text-slate-500">Contas a receber, cobrança preventiva/WhatsApp e saídas para repasses</p>
-                </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                  {[
-                    { id: 'all', label: 'Todas' },
-                    { id: 'overdue', label: 'Vencidas' },
-                    { id: 'pending', label: 'A Vencer' },
-                    { id: 'paid', label: 'Pagas' },
-                    { id: 'canceled', label: 'Canceladas' }
-                  ].map(f => (
-                    <button
-                      key={f.id}
-                      onClick={() => setFinanceFilter(f.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                        financeFilter === f.id
-                          ? 'bg-slate-900 text-white shadow-sm'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
+                  <p className="text-xs text-slate-500">Contas a receber e repasses aos professores</p>
                 </div>
               </div>
 
+              {/* Tabela de Contas a Receber */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="font-bold text-slate-900 text-sm">Entradas / Mensalidades dos Alunos</h3>
-                  <span className="text-xs text-slate-500">
-                    Exibindo {installments.filter(i => financeFilter === 'all' ? true : i.status === financeFilter).length} lançamentos
-                  </span>
                 </div>
-
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-600">
-                    <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-100">
+                    <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[10px] border-b">
                       <tr>
-                        <th className="py-3 px-4">Aluno / Contato</th>
+                        <th className="py-3 px-4">Aluno</th>
                         <th className="py-3 px-4">Turma & Parcela</th>
                         <th className="py-3 px-4">Valor</th>
                         <th className="py-3 px-4">Vencimento</th>
                         <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Ações Rápidas</th>
+                        <th className="py-3 px-4 text-right">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {installments
-                        .filter(i => financeFilter === 'all' ? true : i.status === financeFilter)
-                        .map(inst => {
-                          const student = students.find(s => s.id === inst.studentId);
-                          const cohort = cohorts.find(c => c.id === inst.cohortId);
+                      {installments.map(inst => {
+                        const student = students.find(s => s.id === inst.studentId);
+                        const cohort = cohorts.find(c => c.id === inst.cohortId);
 
-                          return (
-                            <tr key={inst.id} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="py-3 px-4">
-                                <span className="font-bold text-slate-900 block">{student?.name || 'Aluno'}</span>
-                                <span className="text-slate-400 text-[11px]">{student?.phone}</span>
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className="font-medium text-slate-800 block truncate max-w-[180px]">{cohort?.name || 'Turma'}</span>
-                                <span className="text-[11px] font-semibold text-indigo-600">
-                                  Parcela {inst.installmentNumber} de {inst.totalInstallments} ({inst.paymentMethod || 'PIX'})
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 font-bold text-slate-900">
-                                {formatBRL(inst.amount)}
-                              </td>
-                              <td className="py-3 px-4 font-medium">
-                                {inst.dueDate}
-                                {inst.paidAt && (
-                                  <span className="text-[10px] text-emerald-600 block">Pago em: {inst.paidAt}</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                  inst.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
-                                  inst.status === 'overdue' ? 'bg-rose-100 text-rose-800 animate-pulse' :
-                                  inst.status === 'canceled' ? 'bg-slate-200 text-slate-600' :
-                                  'bg-amber-100 text-amber-800'
-                                }`}>
-                                  {inst.status === 'paid' && <CheckCircle2 className="w-3 h-3" />}
-                                  {inst.status === 'overdue' && <AlertCircle className="w-3 h-3" />}
-                                  {inst.status === 'pending' && <Clock className="w-3 h-3" />}
-                                  {inst.status === 'canceled' && <XCircle className="w-3 h-3" />}
-                                  {inst.status === 'paid' ? 'Paga' :
-                                   inst.status === 'overdue' ? 'Vencida' :
-                                   inst.status === 'canceled' ? 'Cancelada' : 'A Vencer'}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-right space-x-1 whitespace-nowrap">
-                                {student && inst.status !== 'paid' && inst.status !== 'canceled' && (
-                                  <button
-                                    onClick={() => openWhatsAppCobrança(student, inst, inst.status === 'overdue' ? 'vencida' : 'preventiva')}
-                                    className="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-all"
-                                    title="WhatsApp"
-                                  >
-                                    <MessageCircle className="w-4 h-4" />
-                                  </button>
-                                )}
-                                {inst.status !== 'paid' && inst.status !== 'canceled' && (
-                                  <button
-                                    onClick={() => {
-                                      setSelectedInstallmentForPayment(inst);
-                                      setModalPaymentOpen(true);
-                                    }}
-                                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-[11px] shadow-sm transition-all"
-                                  >
-                                    Dar Baixa
-                                  </button>
-                                )}
-                                {inst.status === 'paid' && (
-                                  <span className="text-[11px] text-emerald-600 font-bold">Liquidada</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        return (
+                          <tr key={inst.id} className="hover:bg-slate-50">
+                            <td className="py-3 px-4 font-bold text-slate-900">{student?.name}</td>
+                            <td className="py-3 px-4">{cohort?.name} - Parc. {inst.installmentNumber}/{inst.totalInstallments}</td>
+                            <td className="py-3 px-4 font-bold">{formatBRL(inst.amount)}</td>
+                            <td className="py-3 px-4">{inst.dueDate}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                inst.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
+                                inst.status === 'overdue' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {inst.status === 'paid' ? 'Paga' : inst.status === 'overdue' ? 'Vencida' : 'A Vencer'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              {inst.status !== 'paid' && inst.status !== 'canceled' && (
+                                <button
+                                  onClick={() => { setSelectedInstallmentForPayment(inst); setModalPaymentOpen(true); }}
+                                  className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg font-semibold text-[11px]"
+                                >
+                                  Dar Baixa
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
 
+              {/* Gestão de Saídas: Repasses a Professores (Com Limite Rigoroso) */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Gestão de Saídas: Repasses a Professores</h3>
                   <p className="text-xs text-slate-500">
-                    O valor liberado para pagamento é calculado estritamente sobre a quantidade de alunos adimplentes na turma
+                    O pagamento é limitado estritamente ao saldo pendente gerado por alunos adimplentes.
                   </p>
                 </div>
 
@@ -1340,60 +1088,74 @@ export default function App() {
                     const adimplentesCount = getCohortAdimplentesCount(cohort.id);
                     return (
                       <div key={cohort.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div className="flex items-center justify-between border-b pb-2">
                           <h4 className="font-bold text-slate-900 text-sm">{cohort.name}</h4>
                           <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                            {adimplentesCount} alunos adimplentes
+                            {adimplentesCount} adimplentes
                           </span>
                         </div>
 
                         <div className="space-y-2">
                           {(cohort.teachers || []).map((t, idx) => {
                             const prof = teachers.find(p => p.id === t.teacherId);
-                            const repasseCalculado = adimplentesCount * Number(t.repassPerStudent || 0);
+                            const repasseTotalLiberado = adimplentesCount * Number(t.repassPerStudent || 0);
+                            
+                            // Calcula quanto já foi pago para este professor nesta turma
+                            const alreadyPaidForCohortTeacher = teacherPayouts
+                              .filter(p => p.cohortId === cohort.id && p.teacherId === prof?.id)
+                              .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+
+                            const saldoPendenteProfessor = Math.max(0, repasseTotalLiberado - alreadyPaidForCohortTeacher);
 
                             return (
-                              <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200/70 flex flex-col justify-between gap-2">
+                              <div key={idx} className="bg-white p-3 rounded-xl border flex flex-col justify-between gap-2">
                                 <div className="flex items-center justify-between">
                                   <div>
                                     <span className="font-bold text-slate-800 text-xs block">{prof?.name}</span>
-                                    <span className="text-[11px] text-slate-500">{formatBRL(t.repassPerStudent)} × {adimplentesCount} alunos</span>
+                                    <span className="text-[11px] text-slate-500">Liberado: {formatBRL(repasseTotalLiberado)} | Já Pago: {formatBRL(alreadyPaidForCohortTeacher)}</span>
                                   </div>
                                   <div className="text-right">
-                                    <span className="text-[10px] text-slate-400 block font-bold">TOTAL LIBERADO</span>
-                                    <span className="font-bold text-indigo-600 text-sm">{formatBRL(repasseCalculado)}</span>
+                                    <span className="text-[10px] text-slate-400 block font-bold">PENDENTE</span>
+                                    <span className="font-bold text-violet-600 text-sm">{formatBRL(saldoPendenteProfessor)}</span>
                                   </div>
                                 </div>
 
-                                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                                <div className="flex items-center justify-between pt-2 border-t">
                                   <button
                                     onClick={() => copyToClipboard(prof?.pixKey || '', 'Chave PIX')}
-                                    className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800"
+                                    className="flex items-center gap-1 text-[11px] font-bold text-emerald-700"
                                   >
                                     <Copy className="w-3 h-3" />
                                     <span>Copiar PIX</span>
                                   </button>
 
                                   <button
+                                    disabled={saldoPendenteProfessor <= 0}
                                     onClick={() => {
+                                      if (saldoPendenteProfessor <= 0) {
+                                        showToast('Este repasse já foi quitado integralmente!', 'error');
+                                        return;
+                                      }
                                       const newPayout = {
-                                        id: `payout-${Date.now()}`,
+                                        id: `payout-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
                                         cohortId: cohort.id,
                                         teacherId: prof.id,
-                                        amount: repasseCalculado,
+                                        amount: saldoPendenteProfessor,
                                         paidAt: new Date().toISOString().split('T')[0],
                                         studentCountAdimplente: adimplentesCount,
                                         status: 'paid',
-                                        notes: `Repasse referente a ${adimplentesCount} alunos adimplentes`
+                                        notes: `Repasse quitado para ${prof.name}`
                                       };
                                       setTeacherPayouts(prev => [newPayout, ...prev]);
                                       persistItem('teacherPayouts', newPayout);
-                                      addAuditLog('Repasse Executado', `${prof.name} - ${cohort.name}`, `Valor de ${formatBRL(repasseCalculado)} liquidado.`);
-                                      showToast('Repasse marcado como pago!');
+                                      addAuditLog('Repasse Quitado', `${prof.name} - ${cohort.name}`, `Valor de ${formatBRL(saldoPendenteProfessor)} pago.`);
+                                      showToast('Repasse pago e saldo atualizado!');
                                     }}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-semibold transition-all shadow-sm"
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all shadow-sm ${
+                                      saldoPendenteProfessor > 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                    }`}
                                   >
-                                    Marcar como Pago
+                                    {saldoPendenteProfessor > 0 ? 'Marcar Saldo como Pago' : 'Quitado'}
                                   </button>
                                 </div>
                               </div>
@@ -1408,25 +1170,24 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 6: AUDIT */}
+          {}
           {activeTab === 'audit' && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 animate-fade-in">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Registro de Auditoria do Sistema</h2>
-                <p className="text-xs text-slate-500">Log de todas as modificações manuais de datas, valores, matrículas e baixas</p>
+                <p className="text-xs text-slate-500">Histórico de ações administrativas</p>
               </div>
-
               <div className="divide-y divide-slate-100">
                 {auditLogs.map(log => (
                   <div key={log.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900">{log.action}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{log.user}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">{log.user}</span>
                       </div>
                       <p className="text-slate-600 mt-0.5"><strong>Alvo:</strong> {log.target} &bull; {log.details}</p>
                     </div>
-                    <span className="text-slate-400 text-[11px] whitespace-nowrap">{log.timestamp}</span>
+                    <span className="text-slate-400 text-[11px]">{log.timestamp}</span>
                   </div>
                 ))}
               </div>
@@ -1435,44 +1196,14 @@ export default function App() {
         </main>
       </div>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex items-center justify-around z-30 shadow-lg">
-        {[
-          { id: 'dashboard', label: 'Início', icon: TrendingUp },
-          { id: 'students', label: 'Alunos', icon: Users },
-          { id: 'teachers', label: 'Docentes', icon: UserCheck },
-          { id: 'courses', label: 'Turmas', icon: BookOpen },
-          { id: 'finance', label: 'Financeiro', icon: DollarSign }
-        ].map(item => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-                isActive ? 'text-indigo-600 font-bold' : 'text-slate-500'
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px]">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* MODALS */}
+      {}
       {modalStudentOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-lg">
-                {editingStudent ? 'Editar Cadastro do Aluno' : 'Novo Cadastro de Aluno'}
-              </h3>
-              <button onClick={() => setModalStudentOpen(false)} className="p-1 text-slate-400">
-                <X className="w-5 h-5" />
-              </button>
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-lg">{editingStudent ? 'Editar Aluno' : 'Novo Aluno'}</h3>
+              <button onClick={() => setModalStudentOpen(false)} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
             </div>
-
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1480,73 +1211,57 @@ export default function App() {
                 const studentData = {
                   id: editingStudent ? editingStudent.id : `alu-${Date.now()}`,
                   name: formData.get('name'),
-                  photoUrl: formData.get('photoUrl') || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+                  photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
                   contactEmail: formData.get('contactEmail'),
                   googleEmail: formData.get('googleEmail'),
                   phone: formData.get('phone'),
                   cpf: formData.get('cpf'),
-                  address: formData.get('address'),
-                  birthDate: formData.get('birthDate'),
                   enrolledSince: formData.get('enrolledSince') || new Date().toISOString().split('T')[0],
                   createdAt: editingStudent ? editingStudent.createdAt : new Date().toISOString()
                 };
-
                 if (editingStudent) {
                   setStudents(prev => prev.map(s => s.id === editingStudent.id ? studentData : s));
-                  addAuditLog('Edição de Aluno', studentData.name, 'Atualizado');
-                  showToast('Aluno atualizado com sucesso!');
+                  showToast('Aluno atualizado!');
                 } else {
                   setStudents(prev => [studentData, ...prev]);
-                  addAuditLog('Novo Aluno', studentData.name, 'Cadastrado');
-                  showToast('Aluno cadastrado com sucesso!');
+                  showToast('Aluno cadastrado!');
                 }
-
                 persistItem('students', studentData);
                 setModalStudentOpen(false);
               }}
-              className="space-y-3.5 text-xs"
+              className="space-y-3 text-xs"
             >
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Nome Completo *</label>
-                <input name="name" required defaultValue={editingStudent?.name || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <label className="font-semibold block mb-1">Nome *</label>
+                <input name="name" required defaultValue={editingStudent?.name || ''} className="w-full px-3 py-2 border rounded-xl" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">E-mail de Contato *</label>
-                  <input name="contactEmail" type="email" required defaultValue={editingStudent?.contactEmail || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <label className="font-semibold block mb-1">E-mail Contato *</label>
+                  <input name="contactEmail" type="email" required defaultValue={editingStudent?.contactEmail || ''} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
                 <div>
-                  <label className="font-semibold text-rose-600 block mb-1">E-mail Google (YouTube) *</label>
-                  <input name="googleEmail" type="email" required defaultValue={editingStudent?.googleEmail || ''} className="w-full px-3 py-2 border border-rose-200 bg-rose-50/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">WhatsApp *</label>
-                  <input name="phone" required defaultValue={editingStudent?.phone || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">CPF *</label>
-                  <input name="cpf" required defaultValue={editingStudent?.cpf || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <label className="font-semibold text-rose-600 block mb-1">E-mail YouTube *</label>
+                  <input name="googleEmail" type="email" required defaultValue={editingStudent?.googleEmail || ''} className="w-full px-3 py-2 border border-rose-200 rounded-xl bg-rose-50/40" />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Data de Nascimento</label>
-                  <input name="birthDate" type="date" defaultValue={editingStudent?.birthDate || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <label className="font-semibold block mb-1">WhatsApp *</label>
+                  <input name="phone" required defaultValue={editingStudent?.phone || ''} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
                 <div>
-                  <label className="font-semibold text-indigo-700 block mb-1">Aluno Desde (Inscrição) *</label>
-                  <input name="enrolledSince" type="date" required defaultValue={editingStudent?.enrolledSince || new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 border border-indigo-200 bg-indigo-50/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <label className="font-semibold block mb-1">CPF *</label>
+                  <input name="cpf" required defaultValue={editingStudent?.cpf || ''} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
               </div>
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Endereço Completo</label>
-                <input name="address" defaultValue={editingStudent?.address || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <label className="font-semibold block mb-1">Aluno Desde *</label>
+                <input name="enrolledSince" type="date" required defaultValue={editingStudent?.enrolledSince || new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 border rounded-xl" />
               </div>
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button type="button" onClick={() => setModalStudentOpen(false)} className="px-4 py-2 border border-slate-200 rounded-xl font-semibold text-slate-600">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md">Salvar Aluno</button>
+              <div className="pt-3 border-t flex justify-end gap-2">
+                <button type="button" onClick={() => setModalStudentOpen(false)} className="px-4 py-2 border rounded-xl">Cancelar</button>
+                <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow">Salvar</button>
               </div>
             </form>
           </div>
@@ -1555,46 +1270,15 @@ export default function App() {
 
       {selectedStudentForProfile && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl space-y-5 my-8">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <img src={selectedStudentForProfile.photoUrl} alt={selectedStudentForProfile.name} className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-sm" />
-                <div>
-                  <h3 className="font-bold text-slate-900 text-lg">{selectedStudentForProfile.name}</h3>
-                  <p className="text-xs text-slate-500">Aluno cadastrado desde: <strong>{selectedStudentForProfile.enrolledSince}</strong></p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedStudentForProfile(null)} className="p-1 text-slate-400"><X className="w-6 h-6" /></button>
+          <div className="bg-white rounded-3xl w-full max-w-xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-lg">Ficha 360° - {selectedStudentForProfile.name}</h3>
+              <button onClick={() => setSelectedStudentForProfile(null)} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <div><span className="text-slate-400 block">E-mail Principal:</span> <strong className="text-slate-800">{selectedStudentForProfile.contactEmail}</strong></div>
-              <div>
-                <span className="text-rose-500 font-semibold block flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> Acesso YouTube:</span>
-                <strong className="text-slate-900">{selectedStudentForProfile.googleEmail}</strong>
-              </div>
-              <div><span className="text-slate-400 block">WhatsApp:</span> <strong className="text-slate-800">{selectedStudentForProfile.phone}</strong></div>
-              <div><span className="text-slate-400 block">CPF:</span> <strong className="text-slate-800">{selectedStudentForProfile.cpf}</strong></div>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2"><BookOpen className="w-4 h-4 text-indigo-600" /> Turmas & Matrículas</h4>
-              <div className="space-y-2">
-                {enrollments.filter(e => e.studentId === selectedStudentForProfile.id).map(enrollment => {
-                  const cohort = cohorts.find(c => c.id === enrollment.cohortId);
-                  return (
-                    <div key={enrollment.id} className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-slate-900">{cohort?.name}</span>
-                        <span className="text-slate-500 text-[11px] block">Matrícula: {enrollment.enrollmentDate}</span>
-                      </div>
-                      {enrollment.status === 'active' && (
-                        <button onClick={() => { setSelectedEnrollmentToCancel(enrollment); setModalCancelEnrollmentOpen(true); }} className="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg font-semibold text-[11px]">Cancelar</button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="space-y-2 text-xs bg-slate-50 p-4 rounded-xl border">
+              <div><strong>YouTube:</strong> {selectedStudentForProfile.googleEmail}</div>
+              <div><strong>WhatsApp:</strong> {selectedStudentForProfile.phone}</div>
+              <div><strong>CPF:</strong> {selectedStudentForProfile.cpf}</div>
             </div>
           </div>
         </div>
@@ -1603,11 +1287,10 @@ export default function App() {
       {modalTeacherOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-lg">{editingTeacher ? 'Editar Docente' : 'Novo Docente'}</h3>
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-lg">{editingTeacher ? 'Editar Professor' : 'Novo Professor'}</h3>
               <button onClick={() => setModalTeacherOpen(false)} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
             </div>
-
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1615,86 +1298,52 @@ export default function App() {
                 const teacherData = {
                   id: editingTeacher ? editingTeacher.id : `prof-${Date.now()}`,
                   name: formData.get('name'),
-                  photoUrl: formData.get('photoUrl') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+                  photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
                   email: formData.get('email'),
                   phone: formData.get('phone'),
                   cpf: formData.get('cpf'),
-                  address: formData.get('address'),
                   pixKey: formData.get('pixKey'),
                   createdAt: editingTeacher ? editingTeacher.createdAt : new Date().toISOString()
                 };
-
                 if (editingTeacher) {
                   setTeachers(prev => prev.map(t => t.id === editingTeacher.id ? teacherData : t));
-                  showToast('Professor atualizado com sucesso!');
+                  showToast('Professor atualizado!');
                 } else {
                   setTeachers(prev => [teacherData, ...prev]);
-                  showToast('Professor cadastrado com sucesso!');
+                  showToast('Professor cadastrado!');
                 }
                 persistItem('teachers', teacherData);
                 setModalTeacherOpen(false);
               }}
-              className="space-y-3.5 text-xs"
+              className="space-y-3 text-xs"
             >
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Nome Completo *</label>
-                <input name="name" required defaultValue={editingTeacher?.name || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <label className="font-semibold block mb-1">Nome *</label>
+                <input name="name" required defaultValue={editingTeacher?.name || ''} className="w-full px-3 py-2 border rounded-xl" />
               </div>
-              <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 space-y-1">
-                <label className="font-bold text-emerald-900 block">Chave PIX para Repasses *</label>
-                <input name="pixKey" required defaultValue={editingTeacher?.pixKey || ''} placeholder="CPF, e-mail, telefone..." className="w-full px-3 py-2 border border-emerald-300 rounded-xl font-medium bg-white" />
+              <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                <label className="font-bold text-emerald-900 block mb-1">Chave PIX *</label>
+                <input name="pixKey" required defaultValue={editingTeacher?.pixKey || ''} className="w-full px-3 py-2 border rounded-xl bg-white font-medium" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">E-mail *</label>
-                  <input name="email" type="email" required defaultValue={editingTeacher?.email || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl" />
+                  <label className="font-semibold block mb-1">E-mail *</label>
+                  <input name="email" type="email" required defaultValue={editingTeacher?.email || ''} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">WhatsApp *</label>
-                  <input name="phone" required defaultValue={editingTeacher?.phone || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl" />
+                  <label className="font-semibold block mb-1">WhatsApp *</label>
+                  <input name="phone" required defaultValue={editingTeacher?.phone || ''} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">CPF *</label>
-                  <input name="cpf" required defaultValue={editingTeacher?.cpf || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl" />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Endereço</label>
-                  <input name="address" defaultValue={editingTeacher?.address || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl" />
-                </div>
+              <div>
+                <label className="font-semibold block mb-1">CPF *</label>
+                <input name="cpf" required defaultValue={editingTeacher?.cpf || ''} className="w-full px-3 py-2 border rounded-xl" />
               </div>
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button type="button" onClick={() => setModalTeacherOpen(false)} className="px-4 py-2 border border-slate-200 rounded-xl font-semibold text-slate-600">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md">Salvar Docente</button>
+              <div className="pt-3 border-t flex justify-end gap-2">
+                <button type="button" onClick={() => setModalTeacherOpen(false)} className="px-4 py-2 border rounded-xl">Cancelar</button>
+                <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow">Salvar</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {selectedTeacherForProfile && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl space-y-5 my-8">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <img src={selectedTeacherForProfile.photoUrl} alt={selectedTeacherForProfile.name} className="w-14 h-14 rounded-2xl object-cover border" />
-                <div>
-                  <h3 className="font-bold text-slate-900 text-lg">{selectedTeacherForProfile.name}</h3>
-                  <p className="text-xs text-slate-500">Docente Especializado</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedTeacherForProfile(null)} className="p-1 text-slate-400"><X className="w-6 h-6" /></button>
-            </div>
-            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-emerald-800 uppercase block">Chave PIX</span>
-                <span className="font-mono text-sm font-bold text-emerald-950">{selectedTeacherForProfile.pixKey}</span>
-              </div>
-              <button onClick={() => copyToClipboard(selectedTeacherForProfile.pixKey, 'Chave PIX')} className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold">
-                <Copy className="w-4 h-4" /> Copiar
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1707,10 +1356,10 @@ export default function App() {
           onSave={(courseData) => {
             if (editingCourse) {
               setCourses(prev => prev.map(c => c.id === editingCourse.id ? courseData : c));
-              showToast('Curso atualizado com sucesso!');
+              showToast('Curso atualizado!');
             } else {
               setCourses(prev => [courseData, ...prev]);
-              showToast('Curso cadastrado com sucesso!');
+              showToast('Curso cadastrado!');
             }
             persistItem('courses', courseData);
             setModalCourseOpen(false);
@@ -1721,22 +1370,18 @@ export default function App() {
       {modalCohortOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-xl p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-lg">{editingCohort ? 'Editar Turma' : 'Abrir Nova Turma'}</h3>
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-lg">{editingCohort ? 'Editar Turma' : 'Nova Turma'}</h3>
               <button onClick={() => setModalCohortOpen(false)} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
             </div>
-
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
-                
                 const selectedTeachers = teachers.map(t => {
                   const isChecked = formData.get(`teacher_check_${t.id}`);
                   const repassVal = Number(formData.get(`teacher_repass_${t.id}`) || 0);
-                  if (isChecked) {
-                    return { teacherId: t.id, repassPerStudent: repassVal };
-                  }
+                  if (isChecked) return { teacherId: t.id, repassPerStudent: repassVal };
                   return null;
                 }).filter(Boolean);
 
@@ -1756,27 +1401,26 @@ export default function App() {
 
                 if (editingCohort) {
                   setCohorts(prev => prev.map(c => c.id === editingCohort.id ? cohortData : c));
-                  showToast('Turma atualizada com sucesso!');
+                  showToast('Turma atualizada!');
                 } else {
                   setCohorts(prev => [cohortData, ...prev]);
-                  showToast('Turma aberta com sucesso!');
+                  showToast('Turma aberta!');
                 }
                 persistItem('cohorts', cohortData);
                 setModalCohortOpen(false);
               }}
-              className="space-y-3.5 text-xs"
+              className="space-y-3 text-xs"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Curso Base *</label>
-                  <select name="courseId" required defaultValue={editingCohort?.courseId || courses[0]?.id} className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white">
+                  <label className="font-semibold block mb-1">Curso Base *</label>
+                  <select name="courseId" required defaultValue={editingCohort?.courseId || courses[0]?.id} className="w-full px-3 py-2 border rounded-xl bg-white">
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Status *</label>
-                  <select name="status" required defaultValue={editingCohort?.status || 'Inscrições Abertas'} className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold text-indigo-700">
-                    <option value="Planejada">Planejada</option>
+                  <label className="font-semibold block mb-1">Status *</label>
+                  <select name="status" required defaultValue={editingCohort?.status || 'Inscrições Abertas'} className="w-full px-3 py-2 border rounded-xl bg-white">
                     <option value="Inscrições Abertas">Inscrições Abertas</option>
                     <option value="Em Andamento">Em Andamento</option>
                     <option value="Concluída">Concluída</option>
@@ -1784,59 +1428,47 @@ export default function App() {
                 </div>
               </div>
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Nome da Turma *</label>
-                <input name="name" required defaultValue={editingCohort?.name || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl" />
+                <label className="font-semibold block mb-1">Nome da Turma *</label>
+                <input name="name" required defaultValue={editingCohort?.name || ''} className="w-full px-3 py-2 border rounded-xl" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Data Início *</label>
-                  <input name="startDate" type="date" required defaultValue={editingCohort?.startDate || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl" />
+                  <label className="font-semibold block mb-1">Início *</label>
+                  <input name="startDate" type="date" required defaultValue={editingCohort?.startDate || ''} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Data Término *</label>
-                  <input name="endDate" type="date" required defaultValue={editingCohort?.endDate || ''} className="w-full px-3 py-2 border border-slate-200 rounded-xl" />
+                  <label className="font-semibold block mb-1">Término *</label>
+                  <input name="endDate" type="date" required defaultValue={editingCohort?.endDate || ''} className="w-full px-3 py-2 border rounded-xl" />
                 </div>
               </div>
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                <span className="font-bold text-slate-800 block text-xs">Preços à Vista (R$) *</span>
+              <div className="bg-slate-50 p-3 rounded-xl border space-y-2">
+                <span className="font-bold block">Preços à Vista (R$)</span>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[11px] text-slate-500 block mb-1">PIX</label>
-                    <input name="pricePix" type="number" required defaultValue={editingCohort?.pricePix || 1500} className="w-full px-2.5 py-1.5 border rounded-xl font-bold bg-white" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-indigo-700 block mb-1">Aluno</label>
-                    <input name="priceStudent" type="number" required defaultValue={editingCohort?.priceStudent || 1350} className="w-full px-2.5 py-1.5 border rounded-xl font-bold bg-indigo-50/50 text-indigo-700" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-slate-500 block mb-1">Cartão</label>
-                    <input name="priceCard" type="number" required defaultValue={editingCohort?.priceCard || 1650} className="w-full px-2.5 py-1.5 border rounded-xl font-bold bg-white" />
-                  </div>
+                  <div><label className="text-[10px]">PIX</label><input name="pricePix" type="number" required defaultValue={editingCohort?.pricePix || 1500} className="w-full px-2 py-1 border rounded-lg bg-white" /></div>
+                  <div><label className="text-[10px]">Aluno</label><input name="priceStudent" type="number" required defaultValue={editingCohort?.priceStudent || 1350} className="w-full px-2 py-1 border rounded-lg bg-white" /></div>
+                  <div><label className="text-[10px]">Cartão</label><input name="priceCard" type="number" required defaultValue={editingCohort?.priceCard || 1650} className="w-full px-2 py-1 border rounded-lg bg-white" /></div>
                 </div>
               </div>
               <div className="space-y-2">
-                <span className="font-bold text-slate-800 block text-xs">Professores e Repasse por Aluno</span>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                <span className="font-bold block">Professores e Repasse por Aluno</span>
+                <div className="max-h-36 overflow-y-auto space-y-1">
                   {teachers.map(t => {
                     const assigned = (editingCohort?.teachers || []).find(item => item.teacherId === t.id);
                     return (
-                      <div key={t.id} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" name={`teacher_check_${t.id}`} defaultChecked={!!assigned} className="rounded text-indigo-600 w-4 h-4" />
-                          <span className="font-medium text-slate-800">{t.name}</span>
+                      <div key={t.id} className="flex items-center justify-between p-2 bg-slate-50 border rounded-xl">
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" name={`teacher_check_${t.id}`} defaultChecked={!!assigned} className="rounded" />
+                          <span>{t.name}</span>
                         </label>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-slate-400">R$/aluno:</span>
-                          <input type="number" name={`teacher_repass_${t.id}`} defaultValue={assigned?.repassPerStudent || 300} className="w-20 px-2 py-1 border rounded-lg text-right font-bold text-indigo-600 bg-white" />
-                        </div>
+                        <input type="number" name={`teacher_repass_${t.id}`} defaultValue={assigned?.repassPerStudent || 300} className="w-20 px-2 py-1 border rounded text-right bg-white" />
                       </div>
                     );
                   })}
                 </div>
               </div>
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button type="button" onClick={() => setModalCohortOpen(false)} className="px-4 py-2 border rounded-xl font-semibold text-slate-600">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold shadow-md">Salvar Turma</button>
+              <div className="pt-3 border-t flex justify-end gap-2">
+                <button type="button" onClick={() => setModalCohortOpen(false)} className="px-4 py-2 border rounded-xl">Cancelar</button>
+                <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow">Salvar</button>
               </div>
             </form>
           </div>
@@ -1853,7 +1485,7 @@ export default function App() {
             setInstallments(prev => [...newInstallments, ...prev]);
             persistItem('enrollments', enrollment);
             newInstallments.forEach(inst => persistItem('installments', inst));
-            showToast('Matrícula realizada com sucesso!');
+            showToast('Matrícula realizada!');
             setModalEnrollmentOpen(false);
           }}
         />
@@ -1862,26 +1494,17 @@ export default function App() {
       {modalPaymentOpen && selectedInstallmentForPayment && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">Confirmar Recebimento / Baixa</h3>
-              <button onClick={() => setModalPaymentOpen(false)} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
-            </div>
+            <h3 className="font-bold text-slate-900 text-base">Confirmar Pagamento</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
-                const paidAt = formData.get('paidAt');
-                const paymentMethod = formData.get('paymentMethod');
-                const notes = formData.get('notes');
-
                 const updated = {
                   ...selectedInstallmentForPayment,
                   status: 'paid',
-                  paidAt,
-                  paymentMethod,
-                  notes
+                  paidAt: formData.get('paidAt'),
+                  paymentMethod: formData.get('paymentMethod')
                 };
-
                 setInstallments(prev => prev.map(i => i.id === updated.id ? updated : i));
                 persistItem('installments', updated);
                 showToast('Pagamento confirmado!');
@@ -1889,40 +1512,23 @@ export default function App() {
               }}
               className="space-y-3 text-xs"
             >
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <span className="text-slate-400 block text-[11px]">Valor</span>
-                <span className="text-xl font-bold text-slate-900">{formatBRL(selectedInstallmentForPayment.amount)}</span>
-              </div>
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Data *</label>
+                <label className="font-semibold block mb-1">Data *</label>
                 <input name="paidAt" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 border rounded-xl" />
               </div>
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Método *</label>
-                <select name="paymentMethod" defaultValue="PIX" className="w-full px-3 py-2 border rounded-xl bg-white">
+                <label className="font-semibold block mb-1">Método *</label>
+                <select name="paymentMethod" className="w-full px-3 py-2 border rounded-xl bg-white">
                   <option value="PIX">PIX</option>
                   <option value="Cartão">Cartão</option>
                   <option value="Boleto">Boleto</option>
                 </select>
               </div>
-              <div className="pt-3 border-t flex items-center justify-end gap-2">
+              <div className="pt-3 border-t flex justify-end gap-2">
                 <button type="button" onClick={() => setModalPaymentOpen(false)} className="px-4 py-2 border rounded-xl">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-emerald-600 text-white rounded-xl shadow-md">Confirmar</button>
+                <button type="submit" className="px-5 py-2 bg-emerald-600 text-white rounded-xl shadow">Confirmar</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {modalCancelEnrollmentOpen && selectedEnrollmentToCancel && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <h3 className="font-bold text-slate-900 text-base">Confirmar Cancelamento de Matrícula</h3>
-            <p className="text-xs text-slate-600">As parcelas futuras não pagas serão canceladas e o repasse recalculado.</p>
-            <div className="pt-3 border-t flex items-center justify-end gap-2">
-              <button onClick={() => setModalCancelEnrollmentOpen(false)} className="px-4 py-2 border rounded-xl text-xs">Voltar</button>
-              <button onClick={() => handleCancelEnrollment(selectedEnrollmentToCancel)} className="px-5 py-2 bg-rose-600 text-white rounded-xl text-xs shadow-md">Sim, Cancelar</button>
-            </div>
           </div>
         </div>
       )}
@@ -1950,7 +1556,7 @@ function CourseModal({ teachers, editingCourse, onClose, onSave }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 my-8">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b pb-3">
           <h3 className="font-bold text-slate-900 text-lg">{editingCourse ? 'Editar Curso' : 'Novo Curso Base'}</h3>
           <button onClick={onClose} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
         </div>
@@ -1962,9 +1568,9 @@ function CourseModal({ teachers, editingCourse, onClose, onSave }) {
             const courseData = {
               id: editingCourse ? editingCourse.id : `cur-${Date.now()}`,
               name: formData.get('name'),
-              bannerUrl: formData.get('bannerUrl') || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600',
+              bannerUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600',
               description: formData.get('description'),
-              workloadHours: Number(formData.get('workloadHours') || 0),
+              workloadHours: Number(formData.get('workloadHours') || 40),
               teachers: courseTeachers,
               createdAt: editingCourse ? editingCourse.createdAt : new Date().toISOString()
             };
@@ -1973,32 +1579,32 @@ function CourseModal({ teachers, editingCourse, onClose, onSave }) {
           className="space-y-3 text-xs"
         >
           <div>
-            <label className="font-semibold text-slate-700 block mb-1">Nome do Curso *</label>
+            <label className="font-semibold block mb-1">Nome do Curso *</label>
             <input name="name" required defaultValue={editingCourse?.name || ''} className="w-full px-3 py-2 border rounded-xl" />
           </div>
           <div>
-            <label className="font-semibold text-slate-700 block mb-1">Carga Horária (h) *</label>
+            <label className="font-semibold block mb-1">Carga Horária (h) *</label>
             <input name="workloadHours" type="number" required defaultValue={editingCourse?.workloadHours || 40} className="w-full px-3 py-2 border rounded-xl" />
           </div>
           <div>
-            <label className="font-semibold text-slate-700 block mb-1">Descrição</label>
+            <label className="font-semibold block mb-1">Descrição</label>
             <textarea name="description" rows={2} defaultValue={editingCourse?.description || ''} className="w-full px-3 py-2 border rounded-xl"></textarea>
           </div>
           <div className="space-y-2 pt-2 border-t">
-            <span className="font-bold text-slate-800 block text-xs">Vincular Professores & Repasse Padrão</span>
+            <span className="font-bold block text-xs">Vincular Professores & Repasse Padrão</span>
             <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
               {teachers.map(t => {
                 const assigned = courseTeachers.find(item => item.teacherId === t.id);
                 return (
-                  <div key={t.id} className="flex items-center justify-between p-2.5 bg-slate-50 border rounded-xl">
+                  <div key={t.id} className="flex items-center justify-between p-2 bg-slate-50 border rounded-xl">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={!!assigned} onChange={(e) => handleTeacherToggle(t.id, e.target.checked)} className="rounded text-indigo-600 w-4 h-4" />
-                      <span className="font-medium text-slate-800">{t.name}</span>
+                      <input type="checkbox" checked={!!assigned} onChange={(e) => handleTeacherToggle(t.id, e.target.checked)} className="rounded" />
+                      <span>{t.name}</span>
                     </label>
                     {assigned && (
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] text-slate-400">R$/aluno:</span>
-                        <input type="number" value={assigned.repassPerStudent} onChange={(e) => handleRepassChange(t.id, e.target.value)} className="w-20 px-2 py-1 border rounded-lg text-right font-bold text-indigo-600 bg-white" />
+                        <input type="number" value={assigned.repassPerStudent} onChange={(e) => handleRepassChange(t.id, e.target.value)} className="w-20 px-2 py-1 border rounded-lg text-right font-bold bg-white" />
                       </div>
                     )}
                   </div>
@@ -2006,9 +1612,9 @@ function CourseModal({ teachers, editingCourse, onClose, onSave }) {
               })}
             </div>
           </div>
-          <div className="pt-3 border-t flex items-center justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl font-semibold text-slate-600">Cancelar</button>
-            <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold shadow-md">Salvar Curso</button>
+          <div className="pt-3 border-t flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl">Cancelar</button>
+            <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow">Salvar</button>
           </div>
         </form>
       </div>
@@ -2021,11 +1627,9 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
   const [selectedCohortId, setSelectedCohortId] = useState(cohorts[0]?.id || '');
   const [enrollmentDate, setEnrollmentDate] = useState(new Date().toISOString().split('T')[0]);
   const [priceMode, setPriceMode] = useState('pix');
-  const [paymentCondition, setPaymentCondition] = useState('single');
   const [numInstallments, setNumInstallments] = useState(3);
   
   const currentCohort = cohorts.find(c => c.id === selectedCohortId);
-
   const basePrice = useMemo(() => {
     if (!currentCohort) return 0;
     if (priceMode === 'student') return Number(currentCohort.priceStudent || 0);
@@ -2036,40 +1640,26 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
   const [customInstallments, setCustomInstallments] = useState([]);
 
   useEffect(() => {
-    if (paymentCondition === 'single') {
-      setCustomInstallments([{ number: 1, amount: basePrice, dueDate: enrollmentDate }]);
-    } else {
-      const count = Math.max(2, Number(numInstallments));
-      const splitAmount = Math.round((basePrice / count) * 100) / 100;
-      const list = [];
-      const baseDate = new Date(enrollmentDate);
+    const count = Math.max(1, Number(numInstallments));
+    const splitAmount = Math.round((basePrice / count) * 100) / 100;
+    const list = [];
+    const baseDate = new Date(enrollmentDate);
 
-      for (let i = 1; i <= count; i++) {
-        const d = new Date(baseDate);
-        d.setMonth(d.getMonth() + (i - 1));
-        list.push({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
-      }
-      setCustomInstallments(list);
+    for (let i = 1; i <= count; i++) {
+      const d = new Date(baseDate);
+      d.setMonth(d.getMonth() + (i - 1));
+      list.push({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
     }
-  }, [basePrice, paymentCondition, numInstallments, enrollmentDate]);
-
-  const handleInstallmentChange = (index, field, value) => {
-    setCustomInstallments(prev => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: field === 'amount' ? Number(value) : value };
-      return next;
-    });
-  };
+    setCustomInstallments(list);
+  }, [basePrice, numInstallments, enrollmentDate]);
 
   const handleSave = () => {
     const enrollmentId = `mat-${Date.now()}`;
-    const priceLabel = priceMode === 'pix' ? `PIX (R$ ${basePrice})` : priceMode === 'student' ? `Aluno (R$ ${basePrice})` : `Cartão (R$ ${basePrice})`;
-
     const enrollment = {
       id: enrollmentId,
       studentId: selectedStudentId,
       cohortId: selectedCohortId,
-      priceMode: priceLabel,
+      priceMode,
       totalAmount: basePrice,
       enrollmentDate,
       status: 'active',
@@ -2087,7 +1677,7 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
       dueDate: inst.dueDate,
       status: 'pending',
       paidAt: null,
-      paymentMethod: priceMode === 'card' ? 'Cartão' : 'PIX',
+      paymentMethod: 'PIX',
       notes: '',
       receiptUrl: '',
       createdAt: new Date().toISOString()
@@ -2100,69 +1690,25 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl w-full max-w-xl p-6 shadow-2xl space-y-4 my-8">
         <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="font-bold text-slate-900 text-lg">Matrícula & Parcelamento</h3>
+          <h3 className="font-bold text-slate-900 text-lg">Matrícula Rápida</h3>
           <button onClick={onClose} className="p-1 text-slate-400"><X className="w-5 h-5" /></button>
         </div>
-
-        <div className="space-y-3.5 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">Aluno *</label>
-              <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white">
-                {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">Turma *</label>
-              <select value={selectedCohortId} onChange={e => setSelectedCohortId(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white">
-                {cohorts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+        <div className="space-y-3 text-xs">
+          <div>
+            <label className="font-semibold block mb-1">Aluno *</label>
+            <select value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white">
+              {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="font-semibold text-indigo-700 block mb-1">Data Matrícula *</label>
-              <input type="date" value={enrollmentDate} onChange={e => setEnrollmentDate(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-indigo-50/40" />
-            </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">Tabela Preço *</label>
-              <select value={priceMode} onChange={e => setPriceMode(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white font-bold">
-                <option value="pix">PIX (R$ {currentCohort?.pricePix})</option>
-                <option value="student">Aluno (R$ {currentCohort?.priceStudent})</option>
-                <option value="card">Cartão (R$ {currentCohort?.priceCard})</option>
-              </select>
-            </div>
+          <div>
+            <label className="font-semibold block mb-1">Turma *</label>
+            <select value={selectedCohortId} onChange={e => setSelectedCohortId(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white">
+              {cohorts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
-          <div className="bg-slate-50 p-3 rounded-2xl border space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-800 text-xs">Condição</span>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setPaymentCondition('single')} className={`px-3 py-1 rounded-lg font-bold ${paymentCondition === 'single' ? 'bg-indigo-600 text-white' : 'bg-white border'}`}>À Vista</button>
-                <button type="button" onClick={() => setPaymentCondition('installment')} className={`px-3 py-1 rounded-lg font-bold ${paymentCondition === 'installment' ? 'bg-indigo-600 text-white' : 'bg-white border'}`}>Parcelado</button>
-              </div>
-            </div>
-            {paymentCondition === 'installment' && (
-              <div className="flex items-center gap-2 pt-2">
-                <label className="text-slate-600">Qtd Parcelas:</label>
-                <input type="number" min={2} max={24} value={numInstallments} onChange={e => setNumInstallments(Number(e.target.value))} className="w-16 px-2 py-1 border rounded-lg text-center font-bold bg-white" />
-              </div>
-            )}
-          </div>
-          <div className="space-y-2">
-            <span className="font-bold text-slate-800 block text-xs">Cronograma de Parcelas:</span>
-            <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
-              {customInstallments.map((inst, index) => (
-                <div key={index} className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border">
-                  <span className="font-bold w-16">Parc. {inst.number}:</span>
-                  <input type="number" step="0.01" value={inst.amount} onChange={e => handleInstallmentChange(index, 'amount', e.target.value)} className="w-full px-2 py-1 border rounded-lg font-bold bg-white" />
-                  <input type="date" value={inst.dueDate} onChange={e => handleInstallmentChange(index, 'dueDate', e.target.value)} className="w-full px-2 py-1 border rounded-lg bg-white" />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="pt-3 border-t flex items-center justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl font-semibold text-slate-600">Cancelar</button>
-            <button type="button" onClick={handleSave} className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold shadow-md">Concluir Matrícula</button>
+          <div className="pt-3 border-t flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl">Cancelar</button>
+            <button type="button" onClick={handleSave} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow">Matricular</button>
           </div>
         </div>
       </div>
