@@ -53,6 +53,7 @@ import {
   Award
 } from 'lucide-react';
 
+// --- CONFIGURAÇÃO FIREBASE / PERSISTÊNCIA ---
 let db = null;
 let auth = null;
 let appId = 'erp-edu-default';
@@ -75,7 +76,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [cloudSynced, setCloudSynced] = useState(false);
 
-  // ZERADO: Sem dados de demonstração iniciais conforme solicitado
+  // --- ZERADO: Sem dados de demonstração iniciais, salvando em localStorage e Firestore ---
   const [students, setStudents] = useState(() => {
     const saved = localStorage.getItem('merkaba_students');
     return saved ? JSON.parse(saved) : [];
@@ -142,6 +143,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [financeFilter, setFinanceFilter] = useState('all');
 
+  // Efeitos de persistência local
   useEffect(() => { localStorage.setItem('merkaba_students', JSON.stringify(students)); }, [students]);
   useEffect(() => { localStorage.setItem('merkaba_teachers', JSON.stringify(teachers)); }, [teachers]);
   useEffect(() => { localStorage.setItem('merkaba_courses', JSON.stringify(courses)); }, [courses]);
@@ -352,6 +354,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -388,6 +391,7 @@ export default function App() {
         </div>
       </header>
 
+      {}
       <div className="flex-1 flex max-w-7xl w-full mx-auto px-0 sm:px-4 lg:px-8 py-0 sm:py-6">
         <aside className="hidden md:flex flex-col w-64 pr-6 shrink-0">
           <nav className="space-y-1.5 sticky top-24">
@@ -472,6 +476,7 @@ export default function App() {
           </div>
         )}
 
+        {}
         <main className="flex-1 w-full pb-20 sm:pb-8 px-4 sm:px-0">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
@@ -1097,6 +1102,7 @@ export default function App() {
         </main>
       </div>
 
+      {}
       {modalStudentOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 my-8">
@@ -1527,12 +1533,14 @@ function CourseModal({ teachers, editingCourse, onClose, onSave }) {
   );
 }
 
+// --- SUB-COMPONENTE: MODAL DE MATRÍCULA RÁPIDA COM PAGAMENTO DINÂMICO ---
 function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || '');
   const [selectedCohortId, setSelectedCohortId] = useState(cohorts[0]?.id || '');
   const [enrollmentDate, setEnrollmentDate] = useState(new Date().toISOString().split('T')[0]);
   const [priceMode, setPriceMode] = useState('pix');
   const [paymentMethod, setPaymentMethod] = useState('PIX');
+  const [paymentType, setPaymentType] = useState('vista'); // 'vista' ou 'parcelado'
   const [numInstallments, setNumInstallments] = useState(3);
   
   const currentCohort = cohorts.find(c => c.id === selectedCohortId);
@@ -1546,18 +1554,33 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
   const [customInstallments, setCustomInstallments] = useState([]);
 
   useEffect(() => {
-    const count = Math.max(1, Number(numInstallments));
-    const splitAmount = Math.round((basePrice / count) * 100) / 100;
-    const list = [];
     const baseDate = new Date(enrollmentDate);
-
-    for (let i = 1; i <= count; i++) {
-      const d = new Date(baseDate);
-      d.setMonth(d.getMonth() + (i - 1));
-      list.push({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
+    if (paymentType === 'vista') {
+      setCustomInstallments([{
+        number: 1,
+        amount: basePrice,
+        dueDate: enrollmentDate
+      }]);
+    } else {
+      const count = Math.max(2, Number(numInstallments));
+      const splitAmount = Math.round((basePrice / count) * 100) / 100;
+      const list = [];
+      for (let i = 1; i <= count; i++) {
+        const d = new Date(baseDate);
+        d.setMonth(d.getMonth() + (i - 1));
+        list.push({ number: i, amount: splitAmount, dueDate: d.toISOString().split('T')[0] });
+      }
+      setCustomInstallments(list);
     }
-    setCustomInstallments(list);
-  }, [basePrice, numInstallments, enrollmentDate]);
+  }, [basePrice, paymentType, numInstallments, enrollmentDate]);
+
+  const handleInstallmentChange = (index, field, value) => {
+    setCustomInstallments(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: field === 'amount' ? Number(value) : value };
+      return next;
+    });
+  };
 
   const handleSave = () => {
     if (!selectedStudentId || !selectedCohortId) {
@@ -1618,18 +1641,114 @@ function EnrollmentQuickModal({ students, cohorts, onClose, onSave }) {
               {cohorts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="font-semibold block mb-1">Data da Matrícula *</label>
+              <input type="date" value={enrollmentDate} onChange={e => setEnrollmentDate(e.target.value)} className="w-full px-3 py-2 border rounded-xl" />
+            </div>
+            <div>
+              <label className="font-semibold block mb-1">Tabela de Preço *</label>
+              <select value={priceMode} onChange={e => setPriceMode(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white font-bold">
+                <option value="pix">PIX (R$ {currentCohort?.pricePix || 0})</option>
+                <option value="student">Aluno (R$ {currentCohort?.priceStudent || 0})</option>
+                <option value="card">Cartão (R$ {currentCohort?.priceCard || 0})</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Seleção da Forma de Pagamento */}
           <div>
             <label className="font-semibold block mb-1">Forma de Pagamento *</label>
-            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-white font-bold">
+            <select
+              value={paymentMethod}
+              onChange={e => {
+                setPaymentMethod(e.target.value);
+                setPaymentType('vista'); // Reseta para à vista ao trocar o método
+              }}
+              className="w-full px-3 py-2 border rounded-xl bg-white font-bold text-indigo-700"
+            >
               <option value="PIX">PIX</option>
-              <option value="Cartão">Cartão de Crédito / Débito</option>
-              <option value="Boleto">Boleto Bancário</option>
+              <option value="Cartão de Crédito / Débito">Cartão de Crédito / Débito</option>
+              <option value="Boleto Bancário">Boleto Bancário</option>
               <option value="Dinheiro">Dinheiro</option>
             </select>
           </div>
+
+          {/* Opções Dinâmicas para À Vista ou Parcelado */}
+          <div className="bg-slate-50 p-3.5 rounded-2xl border space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800">Condição ({paymentMethod}):</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('vista')}
+                  className={`px-3 py-1 rounded-lg font-bold text-xs ${
+                    paymentType === 'vista' ? 'bg-indigo-600 text-white' : 'bg-white border text-slate-600'
+                  }`}
+                >
+                  À Vista
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('parcelado')}
+                  className={`px-3 py-1 rounded-lg font-bold text-xs ${
+                    paymentType === 'parcelado' ? 'bg-indigo-600 text-white' : 'bg-white border text-slate-600'
+                  }`}
+                >
+                  Parcelado
+                </button>
+              </div>
+            </div>
+
+            {paymentType === 'parcelado' && (
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-slate-600 font-medium">Número de Parcelas:</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={24}
+                  value={numInstallments}
+                  onChange={e => setNumInstallments(Number(e.target.value))}
+                  className="w-16 px-2 py-1 border rounded-lg text-center font-bold bg-white"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Lista de Parcelas Geradas */}
+          <div className="space-y-1.5">
+            <span className="font-bold block">Cronograma de Lançamento das Parcelas:</span>
+            <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+              {customInstallments.map((inst, index) => (
+                <div key={index} className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border">
+                  <span className="font-bold text-slate-700 w-16">Parc. {inst.number}:</span>
+                  <div className="flex-1 flex items-center gap-1">
+                    <span className="text-slate-400">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={inst.amount}
+                      onChange={e => handleInstallmentChange(index, 'amount', e.target.value)}
+                      className="w-full px-2 py-1 border rounded-lg font-bold bg-white"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="date"
+                      value={inst.dueDate}
+                      onChange={e => handleInstallmentChange(index, 'dueDate', e.target.value)}
+                      className="w-full px-2 py-1 border rounded-lg font-medium bg-white"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="pt-3 border-t flex justify-end gap-2">
             <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl">Cancelar</button>
-            <button type="button" onClick={handleSave} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow">Matricular</button>
+            <button type="button" onClick={handleSave} className="px-5 py-2 bg-indigo-600 text-white rounded-xl shadow">Concluir Matrícula</button>
           </div>
         </div>
       </div>
