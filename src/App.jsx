@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-// Componentes de Ícones em SVG Nativo (100% estáveis)
+// Componentes de Ícones em SVG Nativo
 const IconUsers = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 100 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
 );
 const IconGraduation = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
 );
 const IconBook = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -28,7 +28,6 @@ export default function App() {
   const [baseCourses, setBaseCourses] = useState(() => JSON.parse(localStorage.getItem('merkaba_baseCourses') || '[]'));
   const [cohorts, setCohorts] = useState(() => JSON.parse(localStorage.getItem('merkaba_cohorts') || '[]'));
   const [enrollments, setEnrollments] = useState(() => JSON.parse(localStorage.getItem('merkaba_enrollments') || '[]'));
-  const [installments, setInstallments] = useState(() => JSON.parse(localStorage.getItem('merkaba_installments') || '[]'));
   const [auditLogs, setAuditLogs] = useState(() => JSON.parse(localStorage.getItem('merkaba_auditLogs') || '[]'));
 
   useEffect(() => { localStorage.setItem('merkaba_students', JSON.stringify(students)); }, [students]);
@@ -36,17 +35,27 @@ export default function App() {
   useEffect(() => { localStorage.setItem('merkaba_baseCourses', JSON.stringify(baseCourses)); }, [baseCourses]);
   useEffect(() => { localStorage.setItem('merkaba_cohorts', JSON.stringify(cohorts)); }, [cohorts]);
   useEffect(() => { localStorage.setItem('merkaba_enrollments', JSON.stringify(enrollments)); }, [enrollments]);
-  useEffect(() => { localStorage.setItem('merkaba_installments', JSON.stringify(installments)); }, [installments]);
   useEffect(() => { localStorage.setItem('merkaba_auditLogs', JSON.stringify(auditLogs)); }, [auditLogs]);
 
-  // Modais
+  // Modais de Criação
   const [showQuickEnrollModal, setShowQuickEnrollModal] = useState(false);
   const [showNewStudentModal, setShowNewStudentModal] = useState(false);
   const [showNewTeacherModal, setShowNewTeacherModal] = useState(false);
   const [showNewCourseModal, setShowNewCourseModal] = useState(false);
   const [showNewCohortModal, setShowNewCohortModal] = useState(false);
+  
+  // Modais de Edição
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editingTeacher, setEditingTeacher] = useState(null);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [editingCohort, setEditingCohort] = useState(null);
 
-  // Formulários
+  // Modais de Atalhos Rápidos
+  const [selectedStudentFor360, setSelectedStudentFor360] = useState(null);
+  const [selectedCohortForStudents, setSelectedCohortForStudents] = useState(null);
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState('');
+
+  // Formulários de Criação
   const [studentForm, setStudentForm] = useState({ name: '', cpf: '', email: '', phone: '', birthDate: '' });
   const [teacherForm, setTeacherForm] = useState({ name: '', cpf: '', email: '', phone: '', pixKey: '', birthDate: '' });
   const [courseForm, setCourseForm] = useState({ name: '', workload: '', description: '' });
@@ -57,7 +66,6 @@ export default function App() {
     setAuditLogs(prev => [{ id: Date.now(), action, user: 'Administrador', timestamp: new Date().toLocaleString() }, ...prev]);
   };
 
-  // Lógica de verificação de Aniversariantes do Dia
   const getTodayBirthdays = () => {
     const today = new Date();
     const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
@@ -72,6 +80,7 @@ export default function App() {
 
   const birthdaysToday = getTodayBirthdays();
 
+  // --- HANDLERS DE ALUNO ---
   const handleAddStudent = (e) => {
     e.preventDefault();
     if (!studentForm.name) return;
@@ -82,6 +91,23 @@ export default function App() {
     setStudentForm({ name: '', cpf: '', email: '', phone: '', birthDate: '' });
   };
 
+  const handleUpdateStudent = (e) => {
+    e.preventDefault();
+    setStudents(prev => prev.map(s => s.id === editingStudent.id ? editingStudent : s));
+    logAction(`Cadastro do aluno atualizado: ${editingStudent.name}`);
+    setEditingStudent(null);
+  };
+
+  const handleDeleteStudent = (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este aluno?')) {
+      const stu = students.find(s => s.id === id);
+      setStudents(prev => prev.filter(s => s.id !== id));
+      setEnrollments(prev => prev.filter(e => e.studentId !== id));
+      logAction(`Aluno excluído: ${stu?.name || id}`);
+    }
+  };
+
+  // --- HANDLERS DE PROFESSOR ---
   const handleAddTeacher = (e) => {
     e.preventDefault();
     if (!teacherForm.name) return;
@@ -92,6 +118,22 @@ export default function App() {
     setTeacherForm({ name: '', cpf: '', email: '', phone: '', pixKey: '', birthDate: '' });
   };
 
+  const handleUpdateTeacher = (e) => {
+    e.preventDefault();
+    setTeachers(prev => prev.map(t => t.id === editingTeacher.id ? editingTeacher : t));
+    logAction(`Cadastro do professor atualizado: ${editingTeacher.name}`);
+    setEditingTeacher(null);
+  };
+
+  const handleDeleteTeacher = (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este professor?')) {
+      const tea = teachers.find(t => t.id === id);
+      setTeachers(prev => prev.filter(t => t.id !== id));
+      logAction(`Professor excluído: ${tea?.name || id}`);
+    }
+  };
+
+  // --- HANDLERS DE CURSO ---
   const handleAddCourse = (e) => {
     e.preventDefault();
     if (!courseForm.name) return;
@@ -102,6 +144,22 @@ export default function App() {
     setCourseForm({ name: '', workload: '', description: '' });
   };
 
+  const handleUpdateCourse = (e) => {
+    e.preventDefault();
+    setBaseCourses(prev => prev.map(c => c.id === editingCourse.id ? editingCourse : c));
+    logAction(`Curso atualizado: ${editingCourse.name}`);
+    setEditingCourse(null);
+  };
+
+  const handleDeleteCourse = (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este curso base?')) {
+      const cou = baseCourses.find(c => c.id === id);
+      setBaseCourses(prev => prev.filter(c => c.id !== id));
+      logAction(`Curso excluído: ${cou?.name || id}`);
+    }
+  };
+
+  // --- HANDLERS DE TURMA ---
   const handleAddCohort = (e) => {
     e.preventDefault();
     if (!cohortForm.baseCourseId) return;
@@ -112,6 +170,23 @@ export default function App() {
     setCohortForm({ baseCourseId: '', code: '', startDate: '', basePrice: '' });
   };
 
+  const handleUpdateCohort = (e) => {
+    e.preventDefault();
+    setCohorts(prev => prev.map(c => c.id === editingCohort.id ? { ...editingCohort, baseCourseId: Number(editingCohort.baseCourseId) } : c));
+    logAction(`Turma atualizada: ${editingCohort.code}`);
+    setEditingCohort(null);
+  };
+
+  const handleDeleteCohort = (id) => {
+    if (window.confirm('Tem certeza que deseja excluir esta turma?')) {
+      const coh = cohorts.find(c => c.id === id);
+      setCohorts(prev => prev.filter(c => c.id !== id));
+      setEnrollments(prev => prev.filter(e => e.cohortId !== id));
+      logAction(`Turma excluída: ${coh?.code || id}`);
+    }
+  };
+
+  // --- HANDLERS DE MATRÍCULA ---
   const handleQuickEnroll = (e) => {
     e.preventDefault();
     if (!quickForm.studentId || !quickForm.cohortId) {
@@ -126,6 +201,17 @@ export default function App() {
     setEnrollments(prev => [...prev, newEnr]);
     logAction(`Matrícula realizada: ${student.name} na turma ${cohort.code}`);
     setShowQuickEnrollModal(false);
+  };
+
+  const handleToggleSuspendEnrollment = (enrollmentId) => {
+    setEnrollments(prev => prev.map(e => {
+      if (e.id === enrollmentId) {
+        const newStatus = e.status === 'suspended' ? 'active' : 'suspended';
+        logAction(`Status da matrícula #${e.id} alterado para: ${newStatus}`);
+        return { ...e, status: newStatus };
+      }
+      return e;
+    }));
   };
 
   return (
@@ -190,7 +276,6 @@ export default function App() {
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-slate-800">Painel Geral da Instituição</h2>
 
-              {/* Alerta de Aniversariantes do Dia */}
               {birthdaysToday.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center space-x-3">
                   <IconCake className="w-6 h-6 text-amber-600 shrink-0" />
@@ -203,7 +288,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Metric Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <span className="text-xs font-medium text-slate-500 uppercase">Entradas Confirmadas</span>
@@ -227,7 +311,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Atalhos Operacionais */}
               <div className="border-t border-slate-200 pt-6">
                 <h3 className="text-sm font-bold text-slate-700 uppercase mb-3">Atalhos Operacionais</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -267,8 +350,8 @@ export default function App() {
                       <tr>
                         <th className="p-3">Nome</th>
                         <th className="p-3">Data Nasc.</th>
-                        <th className="p-3">CPF</th>
                         <th className="p-3">Contato</th>
+                        <th className="p-3 text-right">Ações & Gestão</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -276,8 +359,27 @@ export default function App() {
                         <tr key={s.id} className="hover:bg-slate-50">
                           <td className="p-3 font-semibold text-slate-800">{s.name}</td>
                           <td className="p-3 text-slate-600">{s.birthDate ? new Date(s.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
-                          <td className="p-3 text-slate-600">{s.cpf || 'N/A'}</td>
                           <td className="p-3 text-slate-600">{s.phone} | {s.email}</td>
+                          <td className="p-3 text-right space-x-1.5">
+                            <button
+                              onClick={() => setSelectedStudentFor360(s)}
+                              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-semibold border border-indigo-200"
+                            >
+                              Ficha 360°
+                            </button>
+                            <button
+                              onClick={() => setEditingStudent(s)}
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-semibold border border-amber-200"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStudent(s.id)}
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
+                            >
+                              Excluir
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -307,7 +409,7 @@ export default function App() {
                         <th className="p-3">Nome</th>
                         <th className="p-3">Data Nasc.</th>
                         <th className="p-3">Chave PIX</th>
-                        <th className="p-3">Contato</th>
+                        <th className="p-3 text-right">Ações & Gestão</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -316,7 +418,26 @@ export default function App() {
                           <td className="p-3 font-semibold text-slate-800">{t.name}</td>
                           <td className="p-3 text-slate-600">{t.birthDate ? new Date(t.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
                           <td className="p-3 font-mono text-xs text-slate-600">{t.pixKey || 'N/A'}</td>
-                          <td className="p-3 text-slate-600">{t.phone}</td>
+                          <td className="p-3 text-right space-x-1.5">
+                            <button
+                              onClick={() => setActiveTab('finance')}
+                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-xs font-semibold border border-emerald-200"
+                            >
+                              Repasses
+                            </button>
+                            <button
+                              onClick={() => setEditingTeacher(t)}
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-semibold border border-amber-200"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeacher(t.id)}
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
+                            >
+                              Excluir
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -338,20 +459,96 @@ export default function App() {
                 </div>
                 {baseCourses.length === 0 ? <p className="text-slate-400 text-xs italic">Nenhum curso cadastrado.</p> : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {baseCourses.map(c => <div key={c.id} className="p-3 border rounded bg-slate-50"><h4 className="font-bold text-indigo-900">{c.name}</h4><p className="text-xs text-slate-500">{c.workload}h</p></div>)}
+                    {baseCourses.map(c => (
+                      <div key={c.id} className="p-3 border rounded-xl bg-slate-50 flex flex-col justify-between">
+                        <div>
+                          <h4 className="font-bold text-indigo-900">{c.name}</h4>
+                          <p className="text-xs text-slate-500">{c.workload}h</p>
+                        </div>
+                        <div className="mt-3 pt-2 border-t flex justify-between items-center">
+                          <button
+                            onClick={() => setSelectedCourseFilter(c.id === selectedCourseFilter ? '' : c.id)}
+                            className="text-xs text-indigo-600 hover:underline font-semibold"
+                          >
+                            {selectedCourseFilter === c.id ? 'Ver Todas' : 'Filtrar Turmas →'}
+                          </button>
+                          <div className="space-x-1">
+                            <button onClick={() => setEditingCourse(c)} className="text-xs text-amber-600 font-semibold px-1.5 py-0.5 rounded hover:bg-amber-50">Editar</button>
+                            <button onClick={() => handleDeleteCourse(c.id)} className="text-xs text-rose-600 font-semibold px-1.5 py-0.5 rounded hover:bg-rose-50">Excluir</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
               <div className="border-t border-slate-200 pt-4">
                 <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-bold text-slate-800">Turmas</h2>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-lg font-bold text-slate-800">Turmas</h2>
+                    {selectedCourseFilter && (
+                      <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-semibold">
+                        Filtrado por Curso
+                      </span>
+                    )}
+                  </div>
                   <button onClick={() => setShowNewCohortModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg">
                     + Abrir Turma
                   </button>
                 </div>
+
                 {cohorts.length === 0 ? <p className="text-slate-400 text-xs italic">Nenhuma turma cadastrada.</p> : (
-                  <div className="border rounded-xl"><table className="w-full text-left text-sm"><thead className="bg-slate-100"><tr><th className="p-3">Código</th><th className="p-3">Preço Base</th></tr></thead><tbody className="divide-y">{cohorts.map(c => <tr key={c.id}><td className="p-3 font-bold">{c.code}</td><td className="p-3">R$ {Number(c.basePrice).toFixed(2)}</td></tr>)}</tbody></table></div>
+                  <div className="border rounded-xl overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-100">
+                        <tr>
+                          <th className="p-3">Código</th>
+                          <th className="p-3">Preço Base</th>
+                          <th className="p-3">Alunos Matriculados</th>
+                          <th className="p-3 text-right">Ações & Atalhos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {cohorts
+                          .filter(c => !selectedCourseFilter || c.baseCourseId === Number(selectedCourseFilter))
+                          .map(c => {
+                            const enrolledCount = enrollments.filter(e => e.cohortId === c.id).length;
+                            return (
+                              <tr key={c.id} className="hover:bg-slate-50">
+                                <td className="p-3 font-bold text-slate-800">{c.code}</td>
+                                <td className="p-3 text-slate-600">R$ {Number(c.basePrice).toFixed(2)}</td>
+                                <td className="p-3">
+                                  <span className="bg-slate-200 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                    {enrolledCount} alunos
+                                  </span>
+                                </td>
+                                <td className="p-3 text-right space-x-1.5">
+                                  <button
+                                    onClick={() => setSelectedCohortForStudents(c)}
+                                    className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-semibold border border-indigo-200"
+                                  >
+                                    Ver Alunos
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingCohort(c)}
+                                    className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-semibold border border-amber-200"
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteCohort(c.id)}
+                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
+                                  >
+                                    Excluir
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
@@ -361,7 +558,7 @@ export default function App() {
           {activeTab === 'finance' && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-slate-800">Financeiro & Repasses</h2>
-              <p className="text-slate-500 text-sm">Controle financeiro de recebimentos e saídas.</p>
+              <p className="text-slate-500 text-sm">Controle de recebimentos e repasses docentes.</p>
             </div>
           )}
 
@@ -377,35 +574,224 @@ export default function App() {
         </main>
       </div>
 
-      {/* MODAL CADASTRAR ALUNO */}
-      {showNewStudentModal && (
+      {/* MODAL EDITAR ALUNO */}
+      {editingStudent && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Aluno</h3>
-            <form onSubmit={handleAddStudent} className="space-y-3 text-sm">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Aluno</h3>
+            <form onSubmit={handleUpdateStudent} className="space-y-3 text-sm">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
-                <input required type="text" value={studentForm.name} onChange={e => setStudentForm({ ...studentForm, name: e.target.value })} className="w-full p-2 border rounded" />
+                <input required type="text" value={editingStudent.name} onChange={e => setEditingStudent({ ...editingStudent, name: e.target.value })} className="w-full p-2 border rounded" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">CPF</label>
-                  <input type="text" value={studentForm.cpf} onChange={e => setStudentForm({ ...studentForm, cpf: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="text" value={editingStudent.cpf || ''} onChange={e => setEditingStudent({ ...editingStudent, cpf: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
-                  <input type="date" value={studentForm.birthDate} onChange={e => setStudentForm({ ...studentForm, birthDate: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="date" value={editingStudent.birthDate || ''} onChange={e => setEditingStudent({ ...editingStudent, birthDate: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
-                  <input type="text" value={studentForm.phone} onChange={e => setStudentForm({ ...studentForm, phone: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="text" value={editingStudent.phone || ''} onChange={e => setEditingStudent({ ...editingStudent, phone: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
-                  <input type="email" value={studentForm.email} onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="email" value={editingStudent.email || ''} onChange={e => setEditingStudent({ ...editingStudent, email: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingStudent(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR PROFESSOR */}
+      {editingTeacher && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Professor</h3>
+            <form onSubmit={handleUpdateTeacher} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
+                <input required type="text" value={editingTeacher.name} onChange={e => setEditingTeacher({ ...editingTeacher, name: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
+                  <input type="date" value={editingTeacher.birthDate || ''} onChange={e => setEditingTeacher({ ...editingTeacher, birthDate: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
+                  <input type="text" value={editingTeacher.phone || ''} onChange={e => setEditingTeacher({ ...editingTeacher, phone: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Chave PIX</label>
+                <input type="text" value={editingTeacher.pixKey || ''} onChange={e => setEditingTeacher({ ...editingTeacher, pixKey: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingTeacher(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR CURSO BASE */}
+      {editingCourse && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Curso Base</h3>
+            <form onSubmit={handleUpdateCourse} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Curso *</label>
+                <input required type="text" value={editingCourse.name} onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Carga Horária (horas)</label>
+                <input type="number" value={editingCourse.workload || ''} onChange={e => setEditingCourse({ ...editingCourse, workload: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingCourse(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR TURMA */}
+      {editingCohort && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Turma</h3>
+            <form onSubmit={handleUpdateCohort} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Curso Base *</label>
+                <select required value={editingCohort.baseCourseId} onChange={e => setEditingCohort({ ...editingCohort, baseCourseId: e.target.value })} className="w-full p-2 border rounded">
+                  <option value="">-- Selecione um Curso Base --</option>
+                  {baseCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma</label>
+                <input type="text" value={editingCohort.code || ''} onChange={e => setEditingCohort({ ...editingCohort, code: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label>
+                <input type="number" value={editingCohort.basePrice || ''} onChange={e => setEditingCohort({ ...editingCohort, basePrice: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingCohort(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL FICHA 360 DO ALUNO */}
+      {selectedStudentFor360 && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">Ficha 360° do Aluno</h3>
+              <button onClick={() => setSelectedStudentFor360(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <p className="font-bold text-indigo-900 text-base">{selectedStudentFor360.name}</p>
+                <p className="text-xs text-slate-600">CPF: {selectedStudentFor360.cpf || 'N/A'}</p>
+                <p className="text-xs text-slate-600">Contato: {selectedStudentFor360.phone} | {selectedStudentFor360.email}</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-700 text-xs uppercase mb-2">Turmas Vinculadas & Status de Matrícula</h4>
+                {enrollments.filter(e => e.studentId === selectedStudentFor360.id).length === 0 ? (
+                  <p className="text-slate-400 text-xs italic">Este aluno ainda não está matriculado em nenhuma turma.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {enrollments.filter(e => e.studentId === selectedStudentFor360.id).map(enr => {
+                      const coh = cohorts.find(c => c.id === enr.cohortId);
+                      return (
+                        <div key={enr.id} className="p-3 border rounded-xl flex justify-between items-center bg-white shadow-sm">
+                          <div>
+                            <span className="font-bold text-slate-800">{coh?.code || 'Turma N/A'}</span>
+                            <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${enr.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {enr.status === 'suspended' ? 'Matrícula Suspensa' : 'Ativa'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleToggleSuspendEnrollment(enr.id)}
+                            className={`px-2.5 py-1 rounded text-xs font-semibold ${enr.status === 'suspended' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}
+                          >
+                            {enr.status === 'suspended' ? 'Reativar' : 'Suspender Matrícula'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ALUNOS DA TURMA */}
+      {selectedCohortForStudents && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">Alunos na Turma: {selectedCohortForStudents.code}</h3>
+              <button onClick={() => setSelectedCohortForStudents(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <div className="space-y-3">
+              {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).length === 0 ? (
+                <p className="text-slate-400 text-xs italic py-4 text-center">Nenhum aluno matriculado nesta turma ainda.</p>
+              ) : (
+                <ul className="divide-y border rounded-xl">
+                  {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).map(enr => {
+                    const stu = students.find(s => s.id === enr.studentId);
+                    return (
+                      <li key={enr.id} className="p-3 flex justify-between items-center text-sm">
+                        <span className="font-semibold text-slate-800">{stu?.name || 'Aluno N/A'}</span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${enr.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {enr.status === 'suspended' ? 'Suspensa' : 'Ativa'}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAIS DE CADASTRO PADRÃO */}
+      {showNewStudentModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Aluno</h3>
+            <form onSubmit={handleAddStudent} className="space-y-3 text-sm">
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label><input required type="text" value={studentForm.name} onChange={e => setStudentForm({ ...studentForm, name: e.target.value })} className="w-full p-2 border rounded" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">CPF</label><input type="text" value={studentForm.cpf} onChange={e => setStudentForm({ ...studentForm, cpf: e.target.value })} className="w-full p-2 border rounded" /></div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label><input type="date" value={studentForm.birthDate} onChange={e => setStudentForm({ ...studentForm, birthDate: e.target.value })} className="w-full p-2 border rounded" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label><input type="text" value={studentForm.phone} onChange={e => setStudentForm({ ...studentForm, phone: e.target.value })} className="w-full p-2 border rounded" /></div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">E-mail</label><input type="email" value={studentForm.email} onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} className="w-full p-2 border rounded" /></div>
               </div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewStudentModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
@@ -416,30 +802,17 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL CADASTRAR PROFESSOR */}
       {showNewTeacherModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
             <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Professor</h3>
             <form onSubmit={handleAddTeacher} className="space-y-3 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
-                <input required type="text" value={teacherForm.name} onChange={e => setTeacherForm({ ...teacherForm, name: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label><input required type="text" value={teacherForm.name} onChange={e => setTeacherForm({ ...teacherForm, name: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
-                  <input type="date" value={teacherForm.birthDate} onChange={e => setTeacherForm({ ...teacherForm, birthDate: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
-                  <input type="text" value={teacherForm.phone} onChange={e => setTeacherForm({ ...teacherForm, phone: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label><input type="date" value={teacherForm.birthDate} onChange={e => setTeacherForm({ ...teacherForm, birthDate: e.target.value })} className="w-full p-2 border rounded" /></div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label><input type="text" value={teacherForm.phone} onChange={e => setTeacherForm({ ...teacherForm, phone: e.target.value })} className="w-full p-2 border rounded" /></div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Chave PIX</label>
-                <input type="text" value={teacherForm.pixKey} onChange={e => setTeacherForm({ ...teacherForm, pixKey: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Chave PIX</label><input type="text" value={teacherForm.pixKey} onChange={e => setTeacherForm({ ...teacherForm, pixKey: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewTeacherModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
                 <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar Professor</button>
@@ -449,20 +822,13 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL CADASTRAR CURSO BASE */}
       {showNewCourseModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
             <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Curso Base</h3>
             <form onSubmit={handleAddCourse} className="space-y-3 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Curso *</label>
-                <input required type="text" value={courseForm.name} onChange={e => setCourseForm({ ...courseForm, name: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Carga Horária (horas)</label>
-                <input type="number" value={courseForm.workload} onChange={e => setCourseForm({ ...courseForm, workload: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Curso *</label><input required type="text" value={courseForm.name} onChange={e => setCourseForm({ ...courseForm, name: e.target.value })} className="w-full p-2 border rounded" /></div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Carga Horária (horas)</label><input type="number" value={courseForm.workload} onChange={e => setCourseForm({ ...courseForm, workload: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewCourseModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
                 <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar Curso</button>
@@ -472,7 +838,6 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL ABRIR TURMA */}
       {showNewCohortModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
@@ -485,14 +850,8 @@ export default function App() {
                   {baseCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma (Ex: TURMA-2026-A)</label>
-                <input type="text" value={cohortForm.code} onChange={e => setCohortForm({ ...cohortForm, code: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label>
-                <input type="number" value={cohortForm.basePrice} onChange={e => setCohortForm({ ...cohortForm, basePrice: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma (Ex: TURMA-2026-A)</label><input type="text" value={cohortForm.code} onChange={e => setCohortForm({ ...cohortForm, code: e.target.value })} className="w-full p-2 border rounded" /></div>
+              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label><input type="number" value={cohortForm.basePrice} onChange={e => setCohortForm({ ...cohortForm, basePrice: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewCohortModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
                 <button type="submit" className="px-3 py-1.5 bg-emerald-600 text-white rounded font-semibold">Criar Turma</button>
@@ -502,7 +861,6 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL MATRÍCULA RÁPIDA */}
       {showQuickEnrollModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
