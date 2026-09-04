@@ -5,7 +5,7 @@ const IconUsers = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 100 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
 );
 const IconGraduation = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
 );
 const IconBook = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -28,6 +28,7 @@ export default function App() {
   const [baseCourses, setBaseCourses] = useState(() => JSON.parse(localStorage.getItem('merkaba_baseCourses') || '[]'));
   const [cohorts, setCohorts] = useState(() => JSON.parse(localStorage.getItem('merkaba_cohorts') || '[]'));
   const [enrollments, setEnrollments] = useState(() => JSON.parse(localStorage.getItem('merkaba_enrollments') || '[]'));
+  const [installments, setInstallments] = useState(() => JSON.parse(localStorage.getItem('merkaba_installments') || '[]'));
   const [auditLogs, setAuditLogs] = useState(() => JSON.parse(localStorage.getItem('merkaba_auditLogs') || '[]'));
 
   useEffect(() => { localStorage.setItem('merkaba_students', JSON.stringify(students)); }, [students]);
@@ -35,6 +36,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('merkaba_baseCourses', JSON.stringify(baseCourses)); }, [baseCourses]);
   useEffect(() => { localStorage.setItem('merkaba_cohorts', JSON.stringify(cohorts)); }, [cohorts]);
   useEffect(() => { localStorage.setItem('merkaba_enrollments', JSON.stringify(enrollments)); }, [enrollments]);
+  useEffect(() => { localStorage.setItem('merkaba_installments', JSON.stringify(installments)); }, [installments]);
   useEffect(() => { localStorage.setItem('merkaba_auditLogs', JSON.stringify(auditLogs)); }, [auditLogs]);
 
   // Modais de Criação
@@ -55,12 +57,20 @@ export default function App() {
   const [selectedCohortForStudents, setSelectedCohortForStudents] = useState(null);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('');
 
+  // Filtros Financeiros (Etapa 3)
+  const [finFilterStudent, setFinFilterStudent] = useState('');
+  const [finFilterCohort, setFinFilterCohort] = useState('');
+  const [finFilterDateStart, setFinFilterDateStart] = useState('');
+  const [finFilterDateEnd, setFinFilterDateEnd] = useState('');
+
   // Formulários de Criação
   const [studentForm, setStudentForm] = useState({ name: '', cpf: '', email: '', phone: '', birthDate: '' });
   const [teacherForm, setTeacherForm] = useState({ name: '', cpf: '', email: '', phone: '', pixKey: '', birthDate: '' });
   const [courseForm, setCourseForm] = useState({ name: '', workload: '', description: '' });
   const [cohortForm, setCohortForm] = useState({ baseCourseId: '', code: '', startDate: '', basePrice: '' });
-  const [quickForm, setQuickForm] = useState({ studentId: '', cohortId: '', paymentMethod: 'PIX', installmentsCount: 1 });
+  const [quickForm, setQuickForm] = useState({
+    studentId: '', cohortId: '', paymentMethod: 'PIX', paymentType: 'vista', installmentsCount: 1, customValue: '', dueDate: new Date().toISOString().split('T')[0]
+  });
 
   const logAction = (action) => {
     setAuditLogs(prev => [{ id: Date.now(), action, user: 'Administrador', timestamp: new Date().toLocaleString() }, ...prev]);
@@ -73,7 +83,7 @@ export default function App() {
     const target = `-${currentMonth}-${currentDay}`;
 
     const studentBdays = students.filter(s => s.birthDate && s.birthDate.endsWith(target)).map(s => ({ name: s.name, type: 'Aluno' }));
-    const teacherBdays = teachers.filter(t => t.birthDate && t.birthDate.endsWith(target)).map(t => ({ name: t.name, type: 'Professor' }));
+    const teacherBdays = teachers.filter(t => t.birthDate && t.birthDate.endsWith(target)).map(s => ({ name: t.name, type: 'Professor' }));
 
     return [...studentBdays, ...teacherBdays];
   };
@@ -186,20 +196,63 @@ export default function App() {
     }
   };
 
-  // --- HANDLERS DE MATRÍCULA ---
+  // --- HANDLERS DE MATRÍCULA E FINANCEIRO (ETAPA 3) ---
   const handleQuickEnroll = (e) => {
     e.preventDefault();
     if (!quickForm.studentId || !quickForm.cohortId) {
       alert('Selecione um aluno e uma turma.');
       return;
     }
+
     const cohort = cohorts.find(c => c.id === Number(quickForm.cohortId));
     const student = students.find(s => s.id === Number(quickForm.studentId));
 
-    const newEnr = { id: Date.now(), studentId: student.id, cohortId: cohort.id, status: 'active', date: new Date().toLocaleDateString('pt-BR') };
-    
+    const newEnr = {
+      id: Date.now(),
+      studentId: student.id,
+      cohortId: cohort.id,
+      status: 'active',
+      date: new Date().toLocaleDateString('pt-BR')
+    };
+
+    const totalValue = Number(quickForm.customValue) || Number(cohort.basePrice) || 1000;
+    const newInstallments = [];
+
+    if (quickForm.paymentType === 'vista') {
+      newInstallments.push({
+        id: Date.now() + 1,
+        enrollmentId: newEnr.id,
+        number: 1,
+        totalParts: 1,
+        value: totalValue,
+        dueDate: quickForm.dueDate,
+        status: 'pending',
+        paymentMethod: quickForm.paymentMethod
+      });
+    } else {
+      const parts = Number(quickForm.installmentsCount) || 2;
+      const partValue = totalValue / parts;
+      const baseDate = new Date(quickForm.dueDate + 'T00:00:00');
+
+      for (let i = 0; i < parts; i++) {
+        const d = new Date(baseDate);
+        d.setMonth(d.getMonth() + i);
+        newInstallments.push({
+          id: Date.now() + 1 + i,
+          enrollmentId: newEnr.id,
+          number: i + 1,
+          totalParts: parts,
+          value: partValue,
+          dueDate: d.toISOString().split('T')[0],
+          status: 'pending',
+          paymentMethod: quickForm.paymentMethod
+        });
+      }
+    }
+
     setEnrollments(prev => [...prev, newEnr]);
-    logAction(`Matrícula realizada: ${student.name} na turma ${cohort.code}`);
+    setInstallments(prev => [...prev, ...newInstallments]);
+    logAction(`Matrícula realizada com financeiro para ${student.name} na turma ${cohort.code}`);
     setShowQuickEnrollModal(false);
   };
 
@@ -213,6 +266,50 @@ export default function App() {
       return e;
     }));
   };
+
+  const handlePayInstallment = (instId) => {
+    setInstallments(prev => prev.map(inst => {
+      if (inst.id === instId) {
+        const newStatus = inst.status === 'paid' ? 'pending' : 'paid';
+        logAction(`Status da parcela #${inst.id} alterado para: ${newStatus}`);
+        return { ...inst, status: newStatus };
+      }
+      return inst;
+    }));
+  };
+
+  const handleCancelInstallment = (instId) => {
+    if (window.confirm('Deseja cancelar esta parcela?')) {
+      setInstallments(prev => prev.map(inst => {
+        if (inst.id === instId) {
+          logAction(`Parcela #${inst.id} cancelada.`);
+          return { ...inst, status: 'cancelled' };
+        }
+        return inst;
+      }));
+    }
+  };
+
+  // Lógica de Filtro e Ordenação das Parcelas no Financeiro
+  const filteredInstallments = installments
+    .filter(inst => {
+      const enr = enrollments.find(e => e.id === inst.enrollmentId);
+      if (!enr) return false;
+      const stu = students.find(s => s.id === enr.studentId);
+      const coh = cohorts.find(c => c.id === enr.cohortId);
+
+      if (finFilterStudent && stu && !stu.name.toLowerCase().includes(finFilterStudent.toLowerCase())) return false;
+      if (finFilterCohort && coh && coh.id !== Number(finFilterCohort)) return false;
+      if (finFilterDateStart && inst.dueDate < finFilterDateStart) return false;
+      if (finFilterDateEnd && inst.dueDate > finFilterDateEnd) return false;
+
+      return true;
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  // Cálculo de Métricas no Financeiro
+  const totalReceived = installments.filter(i => i.status === 'paid').reduce((acc, i) => acc + Number(i.value), 0);
+  const totalPending = installments.filter(i => i.status === 'pending').reduce((acc, i) => acc + Number(i.value), 0);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
@@ -262,6 +359,7 @@ export default function App() {
 
           <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'finance' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
             <div className="flex items-center space-x-3"><IconDollar className="w-5 h-5" /><span>Financeiro & Repasses</span></div>
+            {installments.some(i => i.status === 'pending') && <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">!</span>}
           </button>
 
           <button onClick={() => setActiveTab('audit')} className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'audit' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
@@ -291,12 +389,12 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <span className="text-xs font-medium text-slate-500 uppercase">Entradas Confirmadas</span>
-                  <div className="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</div>
+                  <div className="text-2xl font-bold text-emerald-600 mt-1">R$ {totalReceived.toFixed(2)}</div>
                   <span className="text-xs text-emerald-600 font-medium">✓ Recebido em caixa</span>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <span className="text-xs font-medium text-slate-500 uppercase">A Vencer / Previsto</span>
-                  <div className="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</div>
+                  <div className="text-2xl font-bold text-amber-600 mt-1">R$ {totalPending.toFixed(2)}</div>
                   <span className="text-xs text-amber-600 font-medium">Parcelas futuras</span>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -554,11 +652,124 @@ export default function App() {
             </div>
           )}
 
-          {/* FINANCEIRO */}
+          {/* FINANCEIRO (ETAPA 3 IMPLEMENTADA) */}
           {activeTab === 'finance' && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-slate-800">Financeiro & Repasses</h2>
-              <p className="text-slate-500 text-sm">Controle de recebimentos e repasses docentes.</p>
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-slate-800">Controle Financeiro de Parcelas & Mensalidades</h2>
+              </div>
+
+              {/* Filtros Combinados */}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-600 mb-1">Filtrar por Aluno</label>
+                  <input
+                    type="text"
+                    placeholder="Nome do aluno..."
+                    value={finFilterStudent}
+                    onChange={e => setFinFilterStudent(e.target.value)}
+                    className="w-full p-2 border border-slate-300 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-600 mb-1">Filtrar por Turma</label>
+                  <select
+                    value={finFilterCohort}
+                    onChange={e => setFinFilterCohort(e.target.value)}
+                    className="w-full p-2 border border-slate-300 rounded"
+                  >
+                    <option value="">Todas as Turmas</option>
+                    {cohorts.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-600 mb-1">Vencimento De</label>
+                  <input
+                    type="date"
+                    value={finFilterDateStart}
+                    onChange={e => setFinFilterDateStart(e.target.value)}
+                    className="w-full p-2 border border-slate-300 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-600 mb-1">Vencimento Até</label>
+                  <input
+                    type="date"
+                    value={finFilterDateEnd}
+                    onChange={e => setFinFilterDateEnd(e.target.value)}
+                    className="w-full p-2 border border-slate-300 rounded"
+                  />
+                </div>
+              </div>
+
+              {/* Tabela de Parcelas Ordenada */}
+              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Vencimento ↑</th>
+                      <th className="p-3">Aluno</th>
+                      <th className="p-3">Turma</th>
+                      <th className="p-3">Parcela</th>
+                      <th className="p-3">Forma</th>
+                      <th className="p-3">Valor</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredInstallments.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="p-6 text-center text-slate-400">
+                          Nenhum lançamento financeiro encontrado com os filtros selecionados.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredInstallments.map(inst => {
+                        const enr = enrollments.find(e => e.id === inst.enrollmentId);
+                        const stu = students.find(s => s.id === enr?.studentId);
+                        const coh = cohorts.find(c => c.id === enr?.cohortId);
+
+                        return (
+                          <tr key={inst.id} className="hover:bg-slate-50">
+                            <td className="p-3 font-semibold text-slate-800">
+                              {new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                            </td>
+                            <td className="p-3 font-medium text-indigo-900">{stu?.name || 'N/A'}</td>
+                            <td className="p-3 text-slate-600">{coh?.code || 'N/A'}</td>
+                            <td className="p-3 text-slate-600">{inst.number}/{inst.totalParts}</td>
+                            <td className="p-3 text-slate-600 text-xs">{inst.paymentMethod || 'PIX'}</td>
+                            <td className="p-3 font-bold text-slate-800">R$ {Number(inst.value).toFixed(2)}</td>
+                            <td className="p-3">
+                              {inst.status === 'paid' && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Pago</span>}
+                              {inst.status === 'pending' && <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Pendente</span>}
+                              {inst.status === 'cancelled' && <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-0.5 rounded-full">Cancelado</span>}
+                            </td>
+                            <td className="p-3 text-right space-x-1.5">
+                              {inst.status !== 'cancelled' && (
+                                <>
+                                  <button
+                                    onClick={() => handlePayInstallment(inst.id)}
+                                    className={`px-2.5 py-1 rounded text-xs font-semibold ${inst.status === 'paid' ? 'bg-slate-100 text-slate-600 border' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+                                  >
+                                    {inst.status === 'paid' ? 'Desfazer Pago' : 'Marcar Pago'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelInstallment(inst.id)}
+                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -861,10 +1072,11 @@ export default function App() {
         </div>
       )}
 
+      {/* MODAL MATRÍCULA COM OPÇÕES FINANCEIRAS */}
       {showQuickEnrollModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Efetuar Matrícula</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Nova Matrícula & Condição Financeira</h3>
             <form onSubmit={handleQuickEnroll} className="space-y-3 text-sm">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Selecione o Aluno *</label>
@@ -877,9 +1089,44 @@ export default function App() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Selecione a Turma *</label>
                 <select required value={quickForm.cohortId} onChange={e => setQuickForm({ ...quickForm, cohortId: e.target.value })} className="w-full p-2 border rounded">
                   <option value="">-- Selecione a Turma --</option>
-                  {cohorts.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
+                  {cohorts.map(c => <option key={c.id} value={c.id}>{c.code} (Base: R$ {c.basePrice})</option>)}
                 </select>
               </div>
+
+              <div className="border-t pt-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Forma de Pagamento</label>
+                <select value={quickForm.paymentMethod} onChange={e => setQuickForm({ ...quickForm, paymentMethod: e.target.value })} className="w-full p-2 border rounded mb-2">
+                  <option value="PIX">PIX</option>
+                  <option value="Cartão de Crédito">Cartão de Crédito</option>
+                  <option value="Boleto">Boleto Bancário</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                </select>
+
+                <div className="flex space-x-4 my-2">
+                  <label className="flex items-center space-x-1 text-xs">
+                    <input type="radio" name="ptype" checked={quickForm.paymentType === 'vista'} onChange={() => setQuickForm({ ...quickForm, paymentType: 'vista', installmentsCount: 1 })} />
+                    <span>À Vista</span>
+                  </label>
+                  <label className="flex items-center space-x-1 text-xs">
+                    <input type="radio" name="ptype" checked={quickForm.paymentType === 'parcelado'} onChange={() => setQuickForm({ ...quickForm, paymentType: 'parcelado', installmentsCount: 2 })} />
+                    <span>Parcelado</span>
+                  </label>
+                </div>
+
+                {quickForm.paymentType === 'parcelado' && (
+                  <div className="grid grid-cols-2 gap-2 mt-2 bg-slate-50 p-2 rounded border">
+                    <div>
+                      <label className="block text-xs text-slate-600">Nº Parcelas</label>
+                      <input type="number" min="2" max="24" value={quickForm.installmentsCount} onChange={e => setQuickForm({ ...quickForm, installmentsCount: e.target.value })} className="w-full p-1.5 border rounded" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-600">1º Vencimento</label>
+                      <input type="date" value={quickForm.dueDate} onChange={e => setQuickForm({ ...quickForm, dueDate: e.target.value })} className="w-full p-1.5 border rounded" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowQuickEnrollModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
                 <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Confirmar Matrícula</button>
