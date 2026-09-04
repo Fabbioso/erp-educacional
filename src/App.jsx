@@ -134,8 +134,13 @@ export default function App() {
   const handleUpdateStudent = async (e) => {
     e.preventDefault();
     await supabase.from('students').update({
-      name: editingStudent.name, cpf: editingStudent.cpf, email: editingStudent.email, phone: editingStudent.phone, birth_date: editingStudent.birthDate
+      name: editingStudent.name,
+      cpf: editingStudent.cpf,
+      email: editingStudent.email,
+      phone: editingStudent.phone,
+      birth_date: editingStudent.birthDate
     }).eq('id', editingStudent.id);
+
     logAction(`Cadastro do aluno atualizado: ${editingStudent.name}`);
     setEditingStudent(null);
     fetchAllData();
@@ -164,8 +169,14 @@ export default function App() {
   const handleUpdateTeacher = async (e) => {
     e.preventDefault();
     await supabase.from('teachers').update({
-      name: editingTeacher.name, cpf: editingTeacher.cpf, email: editingTeacher.email, phone: editingTeacher.phone, pix_key: editingTeacher.pixKey, birth_date: editingTeacher.birthDate
+      name: editingTeacher.name,
+      cpf: editingTeacher.cpf,
+      email: editingTeacher.email,
+      phone: editingTeacher.phone,
+      pix_key: editingTeacher.pixKey,
+      birth_date: editingTeacher.birthDate
     }).eq('id', editingTeacher.id);
+
     logAction(`Cadastro do professor atualizado: ${editingTeacher.name}`);
     setEditingTeacher(null);
     fetchAllData();
@@ -770,6 +781,126 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* MODAL EDITAR ALUNO */}
+      {editingStudent && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Aluno</h3>
+            <form onSubmit={handleUpdateStudent} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
+                <input required type="text" value={editingStudent.name || ''} onChange={e => setEditingStudent({ ...editingStudent, name: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">CPF</label>
+                  <input type="text" value={editingStudent.cpf || ''} onChange={e => setEditingStudent({ ...editingStudent, cpf: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
+                  <input type="date" value={editingStudent.birthDate || ''} onChange={e => setEditingStudent({ ...editingStudent, birthDate: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
+                  <input type="text" value={editingStudent.phone || ''} onChange={e => setEditingStudent({ ...editingStudent, phone: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
+                  <input type="email" value={editingStudent.email || ''} onChange={e => setEditingStudent({ ...editingStudent, email: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingStudent(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR PROFESSOR */}
+      {editingTeacher && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Professor</h3>
+            <form onSubmit={handleUpdateTeacher} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
+                <input required type="text" value={editingTeacher.name || ''} onChange={e => setEditingTeacher({ ...editingTeacher, name: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
+                  <input type="date" value={editingTeacher.birthDate || ''} onChange={e => setEditingTeacher({ ...editingTeacher, birthDate: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
+                  <input type="text" value={editingTeacher.phone || ''} onChange={e => setEditingTeacher({ ...editingTeacher, phone: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Chave PIX</label>
+                <input type="text" value={editingTeacher.pixKey || ''} onChange={e => setEditingTeacher({ ...editingTeacher, pixKey: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingTeacher(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL FICHA 360 DO ALUNO */}
+      {selectedStudentFor360 && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">Ficha 360° do Aluno</h3>
+              <button onClick={() => setSelectedStudentFor360(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <p className="font-bold text-indigo-900 text-base">{selectedStudentFor360.name}</p>
+                <p className="text-xs text-slate-600">CPF: {selectedStudentFor360.cpf || 'N/A'}</p>
+                <p className="text-xs text-slate-600">Contato: {selectedStudentFor360.phone || 'N/A'} | {selectedStudentFor360.email || 'N/A'}</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-700 text-xs uppercase mb-2">Turmas Vinculadas & Status de Matrícula</h4>
+                {enrollments.filter(e => e.studentId === selectedStudentFor360.id).length === 0 ? (
+                  <p className="text-slate-400 text-xs italic">Este aluno ainda não está matriculado em nenhuma turma.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {enrollments.filter(e => e.studentId === selectedStudentFor360.id).map(enr => {
+                      const coh = cohorts.find(c => c.id === enr.cohortId);
+                      return (
+                        <div key={enr.id} className="p-3 border rounded-xl flex justify-between items-center bg-white shadow-sm">
+                          <div>
+                            <span className="font-bold text-slate-800">{coh?.code || 'Turma N/A'}</span>
+                            <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${enr.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {enr.status === 'suspended' ? 'Matrícula Suspensa' : 'Ativa'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleToggleSuspendEnrollment(enr.id)}
+                            className={`px-2.5 py-1 rounded text-xs font-semibold ${enr.status === 'suspended' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}
+                          >
+                            {enr.status === 'suspended' ? 'Reativar' : 'Suspender Matrícula'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAIS DE CADASTRO PADRÃO */}
       {showNewStudentModal && (
