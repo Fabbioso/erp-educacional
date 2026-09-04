@@ -5,7 +5,7 @@ const IconUsers = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 100 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
 );
 const IconGraduation = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
 );
 const IconBook = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -23,13 +23,27 @@ const IconCake = ({ className = "w-5 h-5" }) => (
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  const [students, setStudents] = useState(() => JSON.parse(localStorage.getItem('merkaba_students') || '[]'));
-  const [teachers, setTeachers] = useState(() => JSON.parse(localStorage.getItem('merkaba_teachers') || '[]'));
-  const [baseCourses, setBaseCourses] = useState(() => JSON.parse(localStorage.getItem('merkaba_baseCourses') || '[]'));
-  const [cohorts, setCohorts] = useState(() => JSON.parse(localStorage.getItem('merkaba_cohorts') || '[]'));
-  const [enrollments, setEnrollments] = useState(() => JSON.parse(localStorage.getItem('merkaba_enrollments') || '[]'));
-  const [installments, setInstallments] = useState(() => JSON.parse(localStorage.getItem('merkaba_installments') || '[]'));
-  const [auditLogs, setAuditLogs] = useState(() => JSON.parse(localStorage.getItem('merkaba_auditLogs') || '[]'));
+  const [students, setStudents] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_students')) || []; } catch { return []; }
+  });
+  const [teachers, setTeachers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_teachers')) || []; } catch { return []; }
+  });
+  const [baseCourses, setBaseCourses] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_baseCourses')) || []; } catch { return []; }
+  });
+  const [cohorts, setCohorts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_cohorts')) || []; } catch { return []; }
+  });
+  const [enrollments, setEnrollments] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_enrollments')) || []; } catch { return []; }
+  });
+  const [installments, setInstallments] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_installments')) || []; } catch { return []; }
+  });
+  const [auditLogs, setAuditLogs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_auditLogs')) || []; } catch { return []; }
+  });
 
   useEffect(() => { localStorage.setItem('merkaba_students', JSON.stringify(students)); }, [students]);
   useEffect(() => { localStorage.setItem('merkaba_teachers', JSON.stringify(teachers)); }, [teachers]);
@@ -57,13 +71,13 @@ export default function App() {
   const [selectedCohortForStudents, setSelectedCohortForStudents] = useState(null);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('');
 
-  // Filtros Financeiros (Etapa 3)
+  // Filtros Financeiros
   const [finFilterStudent, setFinFilterStudent] = useState('');
   const [finFilterCohort, setFinFilterCohort] = useState('');
   const [finFilterDateStart, setFinFilterDateStart] = useState('');
   const [finFilterDateEnd, setFinFilterDateEnd] = useState('');
 
-  // Formulários de Criação
+  // Formulários
   const [studentForm, setStudentForm] = useState({ name: '', cpf: '', email: '', phone: '', birthDate: '' });
   const [teacherForm, setTeacherForm] = useState({ name: '', cpf: '', email: '', phone: '', pixKey: '', birthDate: '' });
   const [courseForm, setCourseForm] = useState({ name: '', workload: '', description: '' });
@@ -82,8 +96,8 @@ export default function App() {
     const currentDay = String(today.getDate()).padStart(2, '0');
     const target = `-${currentMonth}-${currentDay}`;
 
-    const studentBdays = students.filter(s => s.birthDate && s.birthDate.endsWith(target)).map(s => ({ name: s.name, type: 'Aluno' }));
-    const teacherBdays = teachers.filter(t => t.birthDate && t.birthDate.endsWith(target)).map(s => ({ name: t.name, type: 'Professor' }));
+    const studentBdays = (students || []).filter(s => s.birthDate && String(s.birthDate).endsWith(target)).map(s => ({ name: s.name, type: 'Aluno' }));
+    const teacherBdays = (teachers || []).filter(t => t.birthDate && String(t.birthDate).endsWith(target)).map(t => ({ name: t.name, type: 'Professor' }));
 
     return [...studentBdays, ...teacherBdays];
   };
@@ -196,7 +210,7 @@ export default function App() {
     }
   };
 
-  // --- HANDLERS DE MATRÍCULA E FINANCEIRO (ETAPA 3) ---
+  // --- HANDLERS DE MATRÍCULA E FINANCEIRO ---
   const handleQuickEnroll = (e) => {
     e.preventDefault();
     if (!quickForm.studentId || !quickForm.cohortId) {
@@ -204,8 +218,10 @@ export default function App() {
       return;
     }
 
-    const cohort = cohorts.find(c => c.id === Number(quickForm.cohortId));
-    const student = students.find(s => s.id === Number(quickForm.studentId));
+    const cohort = (cohorts || []).find(c => c.id === Number(quickForm.cohortId));
+    const student = (students || []).find(s => s.id === Number(quickForm.studentId));
+
+    if (!cohort || !student) return;
 
     const newEnr = {
       id: Date.now(),
@@ -225,14 +241,14 @@ export default function App() {
         number: 1,
         totalParts: 1,
         value: totalValue,
-        dueDate: quickForm.dueDate,
+        dueDate: quickForm.dueDate || new Date().toISOString().split('T')[0],
         status: 'pending',
         paymentMethod: quickForm.paymentMethod
       });
     } else {
       const parts = Number(quickForm.installmentsCount) || 2;
       const partValue = totalValue / parts;
-      const baseDate = new Date(quickForm.dueDate + 'T00:00:00');
+      const baseDate = new Date((quickForm.dueDate || new Date().toISOString().split('T')[0]) + 'T00:00:00');
 
       for (let i = 0; i < parts; i++) {
         const d = new Date(baseDate);
@@ -290,26 +306,26 @@ export default function App() {
     }
   };
 
-  // Lógica de Filtro e Ordenação das Parcelas no Financeiro
-  const filteredInstallments = installments
+  // Lógica de Filtro e Ordenação Segura
+  const filteredInstallments = (installments || [])
     .filter(inst => {
-      const enr = enrollments.find(e => e.id === inst.enrollmentId);
+      if (!inst) return false;
+      const enr = (enrollments || []).find(e => e.id === inst.enrollmentId);
       if (!enr) return false;
-      const stu = students.find(s => s.id === enr.studentId);
-      const coh = cohorts.find(c => c.id === enr.cohortId);
+      const stu = (students || []).find(s => s.id === enr.studentId);
+      const coh = (cohorts || []).find(c => c.id === enr.cohortId);
 
       if (finFilterStudent && stu && !stu.name.toLowerCase().includes(finFilterStudent.toLowerCase())) return false;
       if (finFilterCohort && coh && coh.id !== Number(finFilterCohort)) return false;
-      if (finFilterDateStart && inst.dueDate < finFilterDateStart) return false;
-      if (finFilterDateEnd && inst.dueDate > finFilterDateEnd) return false;
+      if (finFilterDateStart && inst.dueDate && inst.dueDate < finFilterDateStart) return false;
+      if (finFilterDateEnd && inst.dueDate && inst.dueDate > finFilterDateEnd) return false;
 
       return true;
     })
-    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    .sort((a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0));
 
-  // Cálculo de Métricas no Financeiro
-  const totalReceived = installments.filter(i => i.status === 'paid').reduce((acc, i) => acc + Number(i.value), 0);
-  const totalPending = installments.filter(i => i.status === 'pending').reduce((acc, i) => acc + Number(i.value), 0);
+  const totalReceived = (installments || []).filter(i => i && i.status === 'paid').reduce((acc, i) => acc + Number(i.value || 0), 0);
+  const totalPending = (installments || []).filter(i => i && i.status === 'pending').reduce((acc, i) => acc + Number(i.value || 0), 0);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
@@ -359,7 +375,6 @@ export default function App() {
 
           <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'finance' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
             <div className="flex items-center space-x-3"><IconDollar className="w-5 h-5" /><span>Financeiro & Repasses</span></div>
-            {installments.some(i => i.status === 'pending') && <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">!</span>}
           </button>
 
           <button onClick={() => setActiveTab('audit')} className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'audit' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
@@ -615,7 +630,7 @@ export default function App() {
                             return (
                               <tr key={c.id} className="hover:bg-slate-50">
                                 <td className="p-3 font-bold text-slate-800">{c.code}</td>
-                                <td className="p-3 text-slate-600">R$ {Number(c.basePrice).toFixed(2)}</td>
+                                <td className="p-3 text-slate-600">R$ {Number(c.basePrice || 0).toFixed(2)}</td>
                                 <td className="p-3">
                                   <span className="bg-slate-200 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full">
                                     {enrolledCount} alunos
@@ -652,14 +667,13 @@ export default function App() {
             </div>
           )}
 
-          {/* FINANCEIRO (ETAPA 3 IMPLEMENTADA) */}
+          {/* FINANCEIRO */}
           {activeTab === 'finance' && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold text-slate-800">Controle Financeiro de Parcelas & Mensalidades</h2>
               </div>
 
-              {/* Filtros Combinados */}
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
                 <div>
                   <label className="block font-semibold text-slate-600 mb-1">Filtrar por Aluno</label>
@@ -702,7 +716,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Tabela de Parcelas Ordenada */}
               <div className="overflow-x-auto border border-slate-200 rounded-xl">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
@@ -721,25 +734,25 @@ export default function App() {
                     {filteredInstallments.length === 0 ? (
                       <tr>
                         <td colSpan="8" className="p-6 text-center text-slate-400">
-                          Nenhum lançamento financeiro encontrado com os filtros selecionados.
+                          Nenhum lançamento financeiro encontrado.
                         </td>
                       </tr>
                     ) : (
                       filteredInstallments.map(inst => {
-                        const enr = enrollments.find(e => e.id === inst.enrollmentId);
-                        const stu = students.find(s => s.id === enr?.studentId);
-                        const coh = cohorts.find(c => c.id === enr?.cohortId);
+                        const enr = (enrollments || []).find(e => e.id === inst.enrollmentId);
+                        const stu = (students || []).find(s => s.id === enr?.studentId);
+                        const coh = (cohorts || []).find(c => c.id === enr?.cohortId);
 
                         return (
                           <tr key={inst.id} className="hover:bg-slate-50">
                             <td className="p-3 font-semibold text-slate-800">
-                              {new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                              {inst.dueDate ? new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
                             </td>
                             <td className="p-3 font-medium text-indigo-900">{stu?.name || 'N/A'}</td>
                             <td className="p-3 text-slate-600">{coh?.code || 'N/A'}</td>
-                            <td className="p-3 text-slate-600">{inst.number}/{inst.totalParts}</td>
+                            <td className="p-3 text-slate-600">{inst.number || 1}/{inst.totalParts || 1}</td>
                             <td className="p-3 text-slate-600 text-xs">{inst.paymentMethod || 'PIX'}</td>
-                            <td className="p-3 font-bold text-slate-800">R$ {Number(inst.value).toFixed(2)}</td>
+                            <td className="p-3 font-bold text-slate-800">R$ {Number(inst.value || 0).toFixed(2)}</td>
                             <td className="p-3">
                               {inst.status === 'paid' && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Pago</span>}
                               {inst.status === 'pending' && <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Pendente</span>}
