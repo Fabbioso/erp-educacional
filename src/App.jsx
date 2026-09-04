@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 
-// Componentes de Ícones em SVG Nativo
+// Ícones em SVG Nativo
 const IconUsers = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 100 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
 );
@@ -22,60 +23,34 @@ const IconCake = ({ className = "w-5 h-5" }) => (
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [loading, setLoading] = useState(true);
 
-  const [students, setStudents] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_students')) || []; } catch { return []; }
-  });
-  const [teachers, setTeachers] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_teachers')) || []; } catch { return []; }
-  });
-  const [baseCourses, setBaseCourses] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_baseCourses')) || []; } catch { return []; }
-  });
-  const [cohorts, setCohorts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_cohorts')) || []; } catch { return []; }
-  });
-  const [enrollments, setEnrollments] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_enrollments')) || []; } catch { return []; }
-  });
-  const [installments, setInstallments] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_installments')) || []; } catch { return []; }
-  });
-  const [teacherPayouts, setTeacherPayouts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_teacherPayouts')) || []; } catch { return []; }
-  });
-  const [auditLogs, setAuditLogs] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('merkaba_auditLogs')) || []; } catch { return []; }
-  });
+  const [students, setStudents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [baseCourses, setBaseCourses] = useState([]);
+  const [cohorts, setCohorts] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [installments, setInstallments] = useState([]);
+  const [teacherPayouts, setTeacherPayouts] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
 
-  useEffect(() => { localStorage.setItem('merkaba_students', JSON.stringify(students)); }, [students]);
-  useEffect(() => { localStorage.setItem('merkaba_teachers', JSON.stringify(teachers)); }, [teachers]);
-  useEffect(() => { localStorage.setItem('merkaba_baseCourses', JSON.stringify(baseCourses)); }, [baseCourses]);
-  useEffect(() => { localStorage.setItem('merkaba_cohorts', JSON.stringify(cohorts)); }, [cohorts]);
-  useEffect(() => { localStorage.setItem('merkaba_enrollments', JSON.stringify(enrollments)); }, [enrollments]);
-  useEffect(() => { localStorage.setItem('merkaba_installments', JSON.stringify(installments)); }, [installments]);
-  useEffect(() => { localStorage.setItem('merkaba_teacherPayouts', JSON.stringify(teacherPayouts)); }, [teacherPayouts]);
-  useEffect(() => { localStorage.setItem('merkaba_auditLogs', JSON.stringify(auditLogs)); }, [auditLogs]);
-
-  // Modais
+  // Modais de Criação
   const [showQuickEnrollModal, setShowQuickEnrollModal] = useState(false);
   const [showNewStudentModal, setShowNewStudentModal] = useState(false);
   const [showNewTeacherModal, setShowNewTeacherModal] = useState(false);
   const [showNewCourseModal, setShowNewCourseModal] = useState(false);
   const [showNewCohortModal, setShowNewCohortModal] = useState(false);
-  
+
   // Modais de Edição
   const [editingStudent, setEditingStudent] = useState(null);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
   const [editingCohort, setEditingCohort] = useState(null);
 
-  // Modais de Atalhos
+  // Modais e Filtros
   const [selectedStudentFor360, setSelectedStudentFor360] = useState(null);
   const [selectedCohortForStudents, setSelectedCohortForStudents] = useState(null);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('');
-
-  // Filtros Financeiros e Repasses (Etapa 4)
   const [finFilterStudent, setFinFilterStudent] = useState('');
   const [finFilterCohort, setFinFilterCohort] = useState('');
   const [finFilterDateStart, setFinFilterDateStart] = useState('');
@@ -91,8 +66,42 @@ export default function App() {
     studentId: '', cohortId: '', paymentMethod: 'PIX', paymentType: 'vista', installmentsCount: 1, customValue: '', dueDate: new Date().toISOString().split('T')[0]
   });
 
-  const logAction = (action) => {
-    setAuditLogs(prev => [{ id: Date.now(), action, user: 'Administrador', timestamp: new Date().toLocaleString() }, ...prev]);
+  // Carregar dados da Nuvem (Supabase)
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const { data: stu } = await supabase.from('students').select('*');
+      const { data: tea } = await supabase.from('teachers').select('*');
+      const { data: cou } = await supabase.from('base_courses').select('*');
+      const { data: coh } = await supabase.from('cohorts').select('*');
+      const { data: enr } = await supabase.from('enrollments').select('*');
+      const { data: ins } = await supabase.from('installments').select('*');
+      const { data: pay } = await supabase.from('teacher_payouts').select('*');
+      const { data: log } = await supabase.from('audit_logs').select('*');
+
+      setStudents((stu || []).map(s => ({ ...s, birthDate: s.birth_date, registrationDate: s.registration_date })));
+      setTeachers((tea || []).map(t => ({ ...t, birthDate: t.birth_date, pixKey: t.pix_key })));
+      setBaseCourses(cou || []);
+      setCohorts((coh || []).map(c => ({ ...c, baseCourseId: c.base_course_id, teacherId: c.teacher_id, basePrice: c.base_price, payoutPercentage: c.payout_percentage })));
+      setEnrollments((enr || []).map(e => ({ ...e, studentId: e.student_id, cohortId: e.cohort_id })));
+      setInstallments((ins || []).map(i => ({ ...i, enrollmentId: i.enrollment_id, totalParts: i.total_parts, dueDate: i.due_date, paymentMethod: i.payment_method })));
+      setTeacherPayouts((pay || []).map(p => p.id));
+      setAuditLogs(log || []);
+    } catch (err) {
+      console.error('Erro ao buscar dados do Supabase:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const logAction = async (action) => {
+    const newLog = { id: Date.now(), action, user: 'Administrador', timestamp: new Date().toLocaleString() };
+    setAuditLogs(prev => [newLog, ...prev]);
+    await supabase.from('audit_logs').insert([newLog]);
   };
 
   const getTodayBirthdays = () => {
@@ -109,125 +118,138 @@ export default function App() {
 
   const birthdaysToday = getTodayBirthdays();
 
-  // --- HANDLERS DE ALUNO ---
-  const handleAddStudent = (e) => {
+  // ALUNOS
+  const handleAddStudent = async (e) => {
     e.preventDefault();
     if (!studentForm.name) return;
-    const newStudent = { id: Date.now(), ...studentForm, registrationDate: new Date().toLocaleDateString('pt-BR') };
-    setStudents(prev => [...prev, newStudent]);
+    const id = Date.now();
+    const newStudent = { id, name: studentForm.name, cpf: studentForm.cpf, email: studentForm.email, phone: studentForm.phone, birth_date: studentForm.birthDate, registration_date: new Date().toLocaleDateString('pt-BR') };
+    await supabase.from('students').insert([newStudent]);
     logAction(`Novo aluno cadastrado: ${newStudent.name}`);
     setShowNewStudentModal(false);
     setStudentForm({ name: '', cpf: '', email: '', phone: '', birthDate: '' });
+    fetchAllData();
   };
 
-  const handleUpdateStudent = (e) => {
+  const handleUpdateStudent = async (e) => {
     e.preventDefault();
-    setStudents(prev => prev.map(s => s.id === editingStudent.id ? editingStudent : s));
+    await supabase.from('students').update({
+      name: editingStudent.name, cpf: editingStudent.cpf, email: editingStudent.email, phone: editingStudent.phone, birth_date: editingStudent.birthDate
+    }).eq('id', editingStudent.id);
     logAction(`Cadastro do aluno atualizado: ${editingStudent.name}`);
     setEditingStudent(null);
+    fetchAllData();
   };
 
-  const handleDeleteStudent = (id) => {
+  const handleDeleteStudent = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este aluno?')) {
-      const stu = students.find(s => s.id === id);
-      setStudents(prev => prev.filter(s => s.id !== id));
-      setEnrollments(prev => prev.filter(e => e.studentId !== id));
-      logAction(`Aluno excluído: ${stu?.name || id}`);
+      await supabase.from('students').delete().eq('id', id);
+      logAction(`Aluno excluído ID: ${id}`);
+      fetchAllData();
     }
   };
 
-  // --- HANDLERS DE PROFESSOR ---
-  const handleAddTeacher = (e) => {
+  // PROFESSORES
+  const handleAddTeacher = async (e) => {
     e.preventDefault();
     if (!teacherForm.name) return;
-    const newTeacher = { id: Date.now(), ...teacherForm };
-    setTeachers(prev => [...prev, newTeacher]);
+    const newTeacher = { id: Date.now(), name: teacherForm.name, cpf: teacherForm.cpf, email: teacherForm.email, phone: teacherForm.phone, pix_key: teacherForm.pixKey, birth_date: teacherForm.birthDate };
+    await supabase.from('teachers').insert([newTeacher]);
     logAction(`Novo professor cadastrado: ${newTeacher.name}`);
     setShowNewTeacherModal(false);
     setTeacherForm({ name: '', cpf: '', email: '', phone: '', pixKey: '', birthDate: '' });
+    fetchAllData();
   };
 
-  const handleUpdateTeacher = (e) => {
+  const handleUpdateTeacher = async (e) => {
     e.preventDefault();
-    setTeachers(prev => prev.map(t => t.id === editingTeacher.id ? editingTeacher : t));
+    await supabase.from('teachers').update({
+      name: editingTeacher.name, cpf: editingTeacher.cpf, email: editingTeacher.email, phone: editingTeacher.phone, pix_key: editingTeacher.pixKey, birth_date: editingTeacher.birthDate
+    }).eq('id', editingTeacher.id);
     logAction(`Cadastro do professor atualizado: ${editingTeacher.name}`);
     setEditingTeacher(null);
+    fetchAllData();
   };
 
-  const handleDeleteTeacher = (id) => {
+  const handleDeleteTeacher = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este professor?')) {
-      const tea = teachers.find(t => t.id === id);
-      setTeachers(prev => prev.filter(t => t.id !== id));
-      logAction(`Professor excluído: ${tea?.name || id}`);
+      await supabase.from('teachers').delete().eq('id', id);
+      logAction(`Professor excluído ID: ${id}`);
+      fetchAllData();
     }
   };
 
-  // --- HANDLERS DE CURSO ---
-  const handleAddCourse = (e) => {
+  // CURSOS
+  const handleAddCourse = async (e) => {
     e.preventDefault();
     if (!courseForm.name) return;
-    const newCourse = { id: Date.now(), ...courseForm };
-    setBaseCourses(prev => [...prev, newCourse]);
+    const newCourse = { id: Date.now(), name: courseForm.name, workload: courseForm.workload, description: courseForm.description };
+    await supabase.from('base_courses').insert([newCourse]);
     logAction(`Novo curso cadastrado: ${newCourse.name}`);
     setShowNewCourseModal(false);
     setCourseForm({ name: '', workload: '', description: '' });
+    fetchAllData();
   };
 
-  const handleUpdateCourse = (e) => {
+  const handleUpdateCourse = async (e) => {
     e.preventDefault();
-    setBaseCourses(prev => prev.map(c => c.id === editingCourse.id ? editingCourse : c));
+    await supabase.from('base_courses').update({ name: editingCourse.name, workload: editingCourse.workload }).eq('id', editingCourse.id);
     logAction(`Curso atualizado: ${editingCourse.name}`);
     setEditingCourse(null);
+    fetchAllData();
   };
 
-  const handleDeleteCourse = (id) => {
+  const handleDeleteCourse = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este curso base?')) {
-      const cou = baseCourses.find(c => c.id === id);
-      setBaseCourses(prev => prev.filter(c => c.id !== id));
-      logAction(`Curso excluído: ${cou?.name || id}`);
+      await supabase.from('base_courses').delete().eq('id', id);
+      logAction(`Curso excluído ID: ${id}`);
+      fetchAllData();
     }
   };
 
-  // --- HANDLERS DE TURMA ---
-  const handleAddCohort = (e) => {
+  // TURMAS
+  const handleAddCohort = async (e) => {
     e.preventDefault();
     if (!cohortForm.baseCourseId) return;
     const newCohort = {
       id: Date.now(),
-      ...cohortForm,
-      baseCourseId: Number(cohortForm.baseCourseId),
-      teacherId: cohortForm.teacherId ? Number(cohortForm.teacherId) : null,
-      payoutPercentage: Number(cohortForm.payoutPercentage) || 50
+      base_course_id: Number(cohortForm.baseCourseId),
+      teacher_id: cohortForm.teacherId ? Number(cohortForm.teacherId) : null,
+      code: cohortForm.code,
+      base_price: Number(cohortForm.basePrice),
+      payout_percentage: Number(cohortForm.payoutPercentage) || 50
     };
-    setCohorts(prev => [...prev, newCohort]);
+    await supabase.from('cohorts').insert([newCohort]);
     logAction(`Nova turma criada: ${newCohort.code}`);
     setShowNewCohortModal(false);
     setCohortForm({ baseCourseId: '', teacherId: '', code: '', startDate: '', basePrice: '', payoutPercentage: '50' });
+    fetchAllData();
   };
 
-  const handleUpdateCohort = (e) => {
+  const handleUpdateCohort = async (e) => {
     e.preventDefault();
-    setCohorts(prev => prev.map(c => c.id === editingCohort.id ? {
-      ...editingCohort,
-      baseCourseId: Number(editingCohort.baseCourseId),
-      teacherId: editingCohort.teacherId ? Number(editingCohort.teacherId) : null,
-      payoutPercentage: Number(editingCohort.payoutPercentage) || 50
-    } : c));
+    await supabase.from('cohorts').update({
+      base_course_id: Number(editingCohort.baseCourseId),
+      teacher_id: editingCohort.teacherId ? Number(editingCohort.teacherId) : null,
+      code: editingCohort.code,
+      base_price: Number(editingCohort.basePrice),
+      payout_percentage: Number(editingCohort.payoutPercentage) || 50
+    }).eq('id', editingCohort.id);
     logAction(`Turma atualizada: ${editingCohort.code}`);
     setEditingCohort(null);
+    fetchAllData();
   };
 
-  const handleDeleteCohort = (id) => {
+  const handleDeleteCohort = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir esta turma?')) {
-      const coh = cohorts.find(c => c.id === id);
-      setCohorts(prev => prev.filter(c => c.id !== id));
-      setEnrollments(prev => prev.filter(e => e.cohortId !== id));
-      logAction(`Turma excluída: ${coh?.code || id}`);
+      await supabase.from('cohorts').delete().eq('id', id);
+      logAction(`Turma excluída ID: ${id}`);
+      fetchAllData();
     }
   };
 
-  // --- HANDLERS DE MATRÍCULA E FINANCEIRO ---
-  const handleQuickEnroll = (e) => {
+  // MATRÍCULAS E FINANCEIRO
+  const handleQuickEnroll = async (e) => {
     e.preventDefault();
     if (!quickForm.studentId || !quickForm.cohortId) {
       alert('Selecione um aluno e uma turma.');
@@ -239,13 +261,16 @@ export default function App() {
 
     if (!cohort || !student) return;
 
+    const enrId = Date.now();
     const newEnr = {
-      id: Date.now(),
-      studentId: student.id,
-      cohortId: cohort.id,
+      id: enrId,
+      student_id: student.id,
+      cohort_id: cohort.id,
       status: 'active',
       date: new Date().toLocaleDateString('pt-BR')
     };
+
+    await supabase.from('enrollments').insert([newEnr]);
 
     const totalValue = Number(quickForm.customValue) || Number(cohort.basePrice) || 1000;
     const newInstallments = [];
@@ -253,13 +278,13 @@ export default function App() {
     if (quickForm.paymentType === 'vista') {
       newInstallments.push({
         id: Date.now() + 1,
-        enrollmentId: newEnr.id,
+        enrollment_id: enrId,
         number: 1,
-        totalParts: 1,
+        total_parts: 1,
         value: totalValue,
-        dueDate: quickForm.dueDate || new Date().toISOString().split('T')[0],
+        due_date: quickForm.dueDate || new Date().toISOString().split('T')[0],
         status: 'pending',
-        paymentMethod: quickForm.paymentMethod
+        payment_method: quickForm.paymentMethod
       });
     } else {
       const parts = Number(quickForm.installmentsCount) || 2;
@@ -271,69 +296,60 @@ export default function App() {
         d.setMonth(d.getMonth() + i);
         newInstallments.push({
           id: Date.now() + 1 + i,
-          enrollmentId: newEnr.id,
+          enrollment_id: enrId,
           number: i + 1,
-          totalParts: parts,
+          total_parts: parts,
           value: partValue,
-          dueDate: d.toISOString().split('T')[0],
+          due_date: d.toISOString().split('T')[0],
           status: 'pending',
-          paymentMethod: quickForm.paymentMethod
+          payment_method: quickForm.paymentMethod
         });
       }
     }
 
-    setEnrollments(prev => [...prev, newEnr]);
-    setInstallments(prev => [...prev, ...newInstallments]);
-    logAction(`Matrícula realizada com financeiro para ${student.name} na turma ${cohort.code}`);
+    await supabase.from('installments').insert(newInstallments);
+    logAction(`Matrícula realizada na nuvem para ${student.name} na turma ${cohort.code}`);
     setShowQuickEnrollModal(false);
+    fetchAllData();
   };
 
-  const handleToggleSuspendEnrollment = (enrollmentId) => {
-    setEnrollments(prev => prev.map(e => {
-      if (e.id === enrollmentId) {
-        const newStatus = e.status === 'suspended' ? 'active' : 'suspended';
-        logAction(`Status da matrícula #${e.id} alterado para: ${newStatus}`);
-        return { ...e, status: newStatus };
-      }
-      return e;
-    }));
+  const handleToggleSuspendEnrollment = async (enrollmentId) => {
+    const enr = enrollments.find(e => e.id === enrollmentId);
+    if (!enr) return;
+    const newStatus = enr.status === 'suspended' ? 'active' : 'suspended';
+    await supabase.from('enrollments').update({ status: newStatus }).eq('id', enrollmentId);
+    logAction(`Status da matrícula #${enrollmentId} alterado para: ${newStatus}`);
+    fetchAllData();
   };
 
-  const handlePayInstallment = (instId) => {
-    setInstallments(prev => prev.map(inst => {
-      if (inst.id === instId) {
-        const newStatus = inst.status === 'paid' ? 'pending' : 'paid';
-        logAction(`Status da parcela #${inst.id} alterado para: ${newStatus}`);
-        return { ...inst, status: newStatus };
-      }
-      return inst;
-    }));
+  const handlePayInstallment = async (instId) => {
+    const inst = installments.find(i => i.id === instId);
+    if (!inst) return;
+    const newStatus = inst.status === 'paid' ? 'pending' : 'paid';
+    await supabase.from('installments').update({ status: newStatus }).eq('id', instId);
+    logAction(`Status da parcela #${instId} alterado para: ${newStatus}`);
+    fetchAllData();
   };
 
-  const handleCancelInstallment = (instId) => {
+  const handleCancelInstallment = async (instId) => {
     if (window.confirm('Deseja cancelar esta parcela?')) {
-      setInstallments(prev => prev.map(inst => {
-        if (inst.id === instId) {
-          logAction(`Parcela #${inst.id} cancelada.`);
-          return { ...inst, status: 'cancelled' };
-        }
-        return inst;
-      }));
+      await supabase.from('installments').update({ status: 'cancelled' }).eq('id', instId);
+      logAction(`Parcela #${instId} cancelada.`);
+      fetchAllData();
     }
   };
 
-  // REPASSES A DOCENTES (ETAPA 4)
-  const handleTogglePayoutStatus = (teacherId, cohortId) => {
+  const handleTogglePayoutStatus = async (teacherId, cohortId) => {
     const key = `${teacherId}_${cohortId}`;
-    setTeacherPayouts(prev => {
-      const isPaid = prev.includes(key);
-      const next = isPaid ? prev.filter(k => k !== key) : [...prev, key];
-      logAction(`Status do repasse para professor ID ${teacherId} na turma ID ${cohortId}: ${isPaid ? 'Pendente' : 'Pago'}`);
-      return next;
-    });
+    if (teacherPayouts.includes(key)) {
+      await supabase.from('teacher_payouts').delete().eq('id', key);
+    } else {
+      await supabase.from('teacher_payouts').insert([{ id: key }]);
+    }
+    logAction(`Status do repasse alterado para ${key}`);
+    fetchAllData();
   };
 
-  // Lógica de Filtro e Ordenação Segura
   const filteredInstallments = (installments || [])
     .filter(inst => {
       if (!inst) return false;
@@ -363,7 +379,7 @@ export default function App() {
             <div className="bg-indigo-600 p-2 rounded-lg font-bold text-xl tracking-wider text-white">❖ MERKABA</div>
             <div>
               <h1 className="text-lg font-semibold leading-none">Merkaba ERP Educacional</h1>
-              <span className="text-xs text-indigo-300">Modo Operacional</span>
+              <span className="text-xs text-emerald-400 font-medium">● Conectado ao Supabase (Nuvem)</span>
             </div>
           </div>
           <button
@@ -415,739 +431,351 @@ export default function App() {
 
         {/* Content */}
         <main className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          {/* DASHBOARD */}
-          {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-slate-800">Painel Geral da Instituição</h2>
+          {loading ? (
+            <div className="text-center py-12 text-slate-500 font-semibold">Carregando dados da nuvem...</div>
+          ) : (
+            <>
+              {/* DASHBOARD */}
+              {activeTab === 'dashboard' && (
+                <div className="space-y-6">
+                  <h2 className="text-xl font-bold text-slate-800">Painel Geral da Instituição</h2>
 
-              {birthdaysToday.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center space-x-3">
-                  <IconCake className="w-6 h-6 text-amber-600 shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-amber-900">Aniversariantes do Dia! 🎂</h4>
-                    <p className="text-sm text-amber-800">
-                      Parabéns a: {birthdaysToday.map(b => `${b.name} (${b.type})`).join(', ')}.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <span className="text-xs font-medium text-slate-500 uppercase">Entradas Confirmadas</span>
-                  <div className="text-2xl font-bold text-emerald-600 mt-1">R$ {totalReceived.toFixed(2)}</div>
-                  <span className="text-xs text-emerald-600 font-medium">✓ Recebido em caixa</span>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <span className="text-xs font-medium text-slate-500 uppercase">A Vencer / Previsto</span>
-                  <div className="text-2xl font-bold text-amber-600 mt-1">R$ {totalPending.toFixed(2)}</div>
-                  <span className="text-xs text-amber-600 font-medium">Parcelas futuras</span>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <span className="text-xs font-medium text-slate-500 uppercase">Repasses Devidos</span>
-                  <div className="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</div>
-                  <span className="text-xs text-indigo-600 font-medium">Base: alunos adimplentes</span>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <span className="text-xs font-medium text-slate-500 uppercase">Repasses Pendentes</span>
-                  <div className="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</div>
-                  <span className="text-xs text-slate-500 font-medium">Aguardando transferência</span>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-6">
-                <h3 className="text-sm font-bold text-slate-700 uppercase mb-3">Atalhos Operacionais</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <button onClick={() => setShowQuickEnrollModal(true)} className="p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-left text-sm font-semibold transition border border-indigo-200">
-                    + Nova Matrícula
-                  </button>
-                  <button onClick={() => setShowNewStudentModal(true)} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-left text-sm font-semibold transition">
-                    + Cadastrar Aluno
-                  </button>
-                  <button onClick={() => setShowNewTeacherModal(true)} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-left text-sm font-semibold transition">
-                    + Cadastrar Professor
-                  </button>
-                  <button onClick={() => setShowNewCohortModal(true)} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-left text-sm font-semibold transition">
-                    + Abrir Turma
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ALUNOS */}
-          {activeTab === 'students' && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-800">Alunos Cadastrados</h2>
-                <button onClick={() => setShowNewStudentModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
-                  + Cadastrar Aluno
-                </button>
-              </div>
-
-              {students.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-8">Nenhum aluno cadastrado.</p>
-              ) : (
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-100 text-slate-600 font-semibold border-b">
-                      <tr>
-                        <th className="p-3">Nome</th>
-                        <th className="p-3">Data Nasc.</th>
-                        <th className="p-3">Contato</th>
-                        <th className="p-3 text-right">Ações & Gestão</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {students.map(s => (
-                        <tr key={s.id} className="hover:bg-slate-50">
-                          <td className="p-3 font-semibold text-slate-800">{s.name}</td>
-                          <td className="p-3 text-slate-600">{s.birthDate ? new Date(s.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
-                          <td className="p-3 text-slate-600">{s.phone} | {s.email}</td>
-                          <td className="p-3 text-right space-x-1.5">
-                            <button
-                              onClick={() => setSelectedStudentFor360(s)}
-                              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-semibold border border-indigo-200"
-                            >
-                              Ficha 360°
-                            </button>
-                            <button
-                              onClick={() => setEditingStudent(s)}
-                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-semibold border border-amber-200"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleDeleteStudent(s.id)}
-                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
-                            >
-                              Excluir
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* PROFESSORES */}
-          {activeTab === 'teachers' && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-800">Docentes & Professores</h2>
-                <button onClick={() => setShowNewTeacherModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
-                  + Cadastrar Professor
-                </button>
-              </div>
-
-              {teachers.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-8">Nenhum professor cadastrado.</p>
-              ) : (
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-100 text-slate-600 font-semibold border-b">
-                      <tr>
-                        <th className="p-3">Nome</th>
-                        <th className="p-3">Data Nasc.</th>
-                        <th className="p-3">Chave PIX</th>
-                        <th className="p-3 text-right">Ações & Gestão</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {teachers.map(t => (
-                        <tr key={t.id} className="hover:bg-slate-50">
-                          <td className="p-3 font-semibold text-slate-800">{t.name}</td>
-                          <td className="p-3 text-slate-600">{t.birthDate ? new Date(t.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
-                          <td className="p-3 font-mono text-xs text-slate-600">{t.pixKey || 'N/A'}</td>
-                          <td className="p-3 text-right space-x-1.5">
-                            <button
-                              onClick={() => {
-                                setPayoutTeacherFilter(t.id);
-                                setActiveTab('payouts');
-                              }}
-                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-xs font-semibold border border-emerald-200"
-                            >
-                              Ver Repasses PIX →
-                            </button>
-                            <button
-                              onClick={() => setEditingTeacher(t)}
-                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-semibold border border-amber-200"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTeacher(t.id)}
-                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
-                            >
-                              Excluir
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* CURSOS & TURMAS */}
-          {activeTab === 'courses' && (
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-bold text-slate-800">Cursos Base</h2>
-                  <button onClick={() => setShowNewCourseModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg">
-                    + Novo Curso Base
-                  </button>
-                </div>
-                {baseCourses.length === 0 ? <p className="text-slate-400 text-xs italic">Nenhum curso cadastrado.</p> : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {baseCourses.map(c => (
-                      <div key={c.id} className="p-3 border rounded-xl bg-slate-50 flex flex-col justify-between">
-                        <div>
-                          <h4 className="font-bold text-indigo-900">{c.name}</h4>
-                          <p className="text-xs text-slate-500">{c.workload}h</p>
-                        </div>
-                        <div className="mt-3 pt-2 border-t flex justify-between items-center">
-                          <button
-                            onClick={() => setSelectedCourseFilter(c.id === selectedCourseFilter ? '' : c.id)}
-                            className="text-xs text-indigo-600 hover:underline font-semibold"
-                          >
-                            {selectedCourseFilter === c.id ? 'Ver Todas' : 'Filtrar Turmas →'}
-                          </button>
-                          <div className="space-x-1">
-                            <button onClick={() => setEditingCourse(c)} className="text-xs text-amber-600 font-semibold px-1.5 py-0.5 rounded hover:bg-amber-50">Editar</button>
-                            <button onClick={() => handleDeleteCourse(c.id)} className="text-xs text-rose-600 font-semibold px-1.5 py-0.5 rounded hover:bg-rose-50">Excluir</button>
-                          </div>
-                        </div>
+                  {birthdaysToday.length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center space-x-3">
+                      <IconCake className="w-6 h-6 text-amber-600 shrink-0" />
+                      <div>
+                        <h4 className="font-semibold text-amber-900">Aniversariantes do Dia! 🎂</h4>
+                        <p className="text-sm text-amber-800">
+                          Parabéns a: {birthdaysToday.map(b => `${b.name} (${b.type})`).join(', ')}.
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
 
-              <div className="border-t border-slate-200 pt-4">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center space-x-2">
-                    <h2 className="text-lg font-bold text-slate-800">Turmas</h2>
-                    {selectedCourseFilter && (
-                      <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-semibold">
-                        Filtrado por Curso
-                      </span>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <span className="text-xs font-medium text-slate-500 uppercase">Entradas Confirmadas</span>
+                      <div className="text-2xl font-bold text-emerald-600 mt-1">R$ {totalReceived.toFixed(2)}</div>
+                      <span className="text-xs text-emerald-600 font-medium">✓ Recebido em caixa</span>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <span className="text-xs font-medium text-slate-500 uppercase">A Vencer / Previsto</span>
+                      <div className="text-2xl font-bold text-amber-600 mt-1">R$ {totalPending.toFixed(2)}</div>
+                      <span className="text-xs text-amber-600 font-medium">Parcelas futuras</span>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <span className="text-xs font-medium text-slate-500 uppercase">Repasses Devidos</span>
+                      <div className="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</div>
+                      <span className="text-xs text-indigo-600 font-medium">Base: alunos adimplentes</span>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <span className="text-xs font-medium text-slate-500 uppercase">Repasses Pendentes</span>
+                      <div className="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</div>
+                      <span className="text-xs text-slate-500 font-medium">Aguardando transferência</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-6">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase mb-3">Atalhos Operacionais</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <button onClick={() => setShowQuickEnrollModal(true)} className="p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-left text-sm font-semibold transition border border-indigo-200">
+                        + Nova Matrícula
+                      </button>
+                      <button onClick={() => setShowNewStudentModal(true)} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-left text-sm font-semibold transition">
+                        + Cadastrar Aluno
+                      </button>
+                      <button onClick={() => setShowNewTeacherModal(true)} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-left text-sm font-semibold transition">
+                        + Cadastrar Professor
+                      </button>
+                      <button onClick={() => setShowNewCohortModal(true)} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-left text-sm font-semibold transition">
+                        + Abrir Turma
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ALUNOS */}
+              {activeTab === 'students' && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-slate-800">Alunos Cadastrados</h2>
+                    <button onClick={() => setShowNewStudentModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
+                      + Cadastrar Aluno
+                    </button>
+                  </div>
+
+                  {students.length === 0 ? (
+                    <p className="text-slate-400 text-sm text-center py-8">Nenhum aluno cadastrado no banco de dados.</p>
+                  ) : (
+                    <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-100 text-slate-600 font-semibold border-b">
+                          <tr>
+                            <th className="p-3">Nome</th>
+                            <th className="p-3">Data Nasc.</th>
+                            <th className="p-3">Contato</th>
+                            <th className="p-3 text-right">Ações & Gestão</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {students.map(s => (
+                            <tr key={s.id} className="hover:bg-slate-50">
+                              <td className="p-3 font-semibold text-slate-800">{s.name}</td>
+                              <td className="p-3 text-slate-600">{s.birthDate ? new Date(s.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
+                              <td className="p-3 text-slate-600">{s.phone} | {s.email}</td>
+                              <td className="p-3 text-right space-x-1.5">
+                                <button onClick={() => setSelectedStudentFor360(s)} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-semibold border border-indigo-200">Ficha 360°</button>
+                                <button onClick={() => setEditingStudent(s)} className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-semibold border border-amber-200">Editar</button>
+                                <button onClick={() => handleDeleteStudent(s.id)} className="px-2 py-1 bg-rose-50 text-rose-700 rounded text-xs font-semibold border border-rose-200">Excluir</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* PROFESSORES */}
+              {activeTab === 'teachers' && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-slate-800">Docentes & Professores</h2>
+                    <button onClick={() => setShowNewTeacherModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
+                      + Cadastrar Professor
+                    </button>
+                  </div>
+
+                  {teachers.length === 0 ? (
+                    <p className="text-slate-400 text-sm text-center py-8">Nenhum professor cadastrado no banco de dados.</p>
+                  ) : (
+                    <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-100 text-slate-600 font-semibold border-b">
+                          <tr>
+                            <th className="p-3">Nome</th>
+                            <th className="p-3">Data Nasc.</th>
+                            <th className="p-3">Chave PIX</th>
+                            <th className="p-3 text-right">Ações & Gestão</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {teachers.map(t => (
+                            <tr key={t.id} className="hover:bg-slate-50">
+                              <td className="p-3 font-semibold text-slate-800">{t.name}</td>
+                              <td className="p-3 text-slate-600">{t.birthDate ? new Date(t.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
+                              <td className="p-3 font-mono text-xs text-slate-600">{t.pixKey || 'N/A'}</td>
+                              <td className="p-3 text-right space-x-1.5">
+                                <button onClick={() => { setPayoutTeacherFilter(t.id); setActiveTab('payouts'); }} className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-semibold border border-emerald-200">Repasses PIX →</button>
+                                <button onClick={() => setEditingTeacher(t)} className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-semibold border border-amber-200">Editar</button>
+                                <button onClick={() => handleDeleteTeacher(t.id)} className="px-2 py-1 bg-rose-50 text-rose-700 rounded text-xs font-semibold border border-rose-200">Excluir</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CURSOS & TURMAS */}
+              {activeTab === 'courses' && (
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h2 className="text-lg font-bold text-slate-800">Cursos Base</h2>
+                      <button onClick={() => setShowNewCourseModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg">+ Novo Curso Base</button>
+                    </div>
+                    {baseCourses.length === 0 ? <p className="text-slate-400 text-xs italic">Nenhum curso cadastrado.</p> : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {baseCourses.map(c => (
+                          <div key={c.id} className="p-3 border rounded-xl bg-slate-50 flex flex-col justify-between">
+                            <div>
+                              <h4 className="font-bold text-indigo-900">{c.name}</h4>
+                              <p className="text-xs text-slate-500">{c.workload}h</p>
+                            </div>
+                            <div className="mt-3 pt-2 border-t flex justify-between items-center">
+                              <button onClick={() => setSelectedCourseFilter(c.id === selectedCourseFilter ? '' : c.id)} className="text-xs text-indigo-600 font-semibold">{selectedCourseFilter === c.id ? 'Ver Todas' : 'Filtrar Turmas →'}</button>
+                              <div className="space-x-1">
+                                <button onClick={() => setEditingCourse(c)} className="text-xs text-amber-600 font-semibold px-1.5 py-0.5">Editar</button>
+                                <button onClick={() => handleDeleteCourse(c.id)} className="text-xs text-rose-600 font-semibold px-1.5 py-0.5">Excluir</button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <button onClick={() => setShowNewCohortModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg">
-                    + Abrir Turma
-                  </button>
-                </div>
 
-                {cohorts.length === 0 ? <p className="text-slate-400 text-xs italic">Nenhuma turma cadastrada.</p> : (
-                  <div className="border rounded-xl overflow-x-auto">
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h2 className="text-lg font-bold text-slate-800">Turmas</h2>
+                      <button onClick={() => setShowNewCohortModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg">+ Abrir Turma</button>
+                    </div>
+                    {cohorts.length === 0 ? <p className="text-slate-400 text-xs italic">Nenhuma turma cadastrada.</p> : (
+                      <div className="border rounded-xl overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-slate-100">
+                            <tr>
+                              <th className="p-3">Código</th>
+                              <th className="p-3">Professor Responsável</th>
+                              <th className="p-3">Preço Base</th>
+                              <th className="p-3">Repasse Docente</th>
+                              <th className="p-3 text-right">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {cohorts.filter(c => !selectedCourseFilter || c.baseCourseId === Number(selectedCourseFilter)).map(c => {
+                              const teacher = teachers.find(t => t.id === Number(c.teacherId));
+                              return (
+                                <tr key={c.id} className="hover:bg-slate-50">
+                                  <td className="p-3 font-bold text-slate-800">{c.code}</td>
+                                  <td className="p-3 text-slate-700 font-medium">{teacher ? teacher.name : 'A definir'}</td>
+                                  <td className="p-3 text-slate-600">R$ {Number(c.basePrice || 0).toFixed(2)}</td>
+                                  <td className="p-3 text-slate-600">{c.payoutPercentage || 50}%</td>
+                                  <td className="p-3 text-right space-x-1.5">
+                                    <button onClick={() => setSelectedCohortForStudents(c)} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-semibold border border-indigo-200">Ver Alunos</button>
+                                    <button onClick={() => setEditingCohort(c)} className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-semibold border border-amber-200">Editar</button>
+                                    <button onClick={() => handleDeleteCohort(c.id)} className="px-2 py-1 bg-rose-50 text-rose-700 rounded text-xs font-semibold border border-rose-200">Excluir</button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* FINANCEIRO */}
+              {activeTab === 'finance' && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold text-slate-800">Controle Financeiro de Parcelas & Mensalidades</h2>
+                  <div className="overflow-x-auto border rounded-xl">
                     <table className="w-full text-left text-sm">
                       <thead className="bg-slate-100">
                         <tr>
-                          <th className="p-3">Código</th>
-                          <th className="p-3">Professor Responsável</th>
-                          <th className="p-3">Preço Base</th>
-                          <th className="p-3">Repasse Docente</th>
-                          <th className="p-3 text-right">Ações & Atalhos</th>
+                          <th className="p-3">Vencimento ↑</th>
+                          <th className="p-3">Aluno</th>
+                          <th className="p-3">Turma</th>
+                          <th className="p-3">Parcela</th>
+                          <th className="p-3">Valor</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3 text-right">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {cohorts
-                          .filter(c => !selectedCourseFilter || c.baseCourseId === Number(selectedCourseFilter))
-                          .map(c => {
-                            const teacher = teachers.find(t => t.id === Number(c.teacherId));
-                            const enrolledCount = enrollments.filter(e => e.cohortId === c.id).length;
+                        {filteredInstallments.length === 0 ? (
+                          <tr><td colSpan="7" className="p-6 text-center text-slate-400">Nenhum lançamento financeiro na nuvem.</td></tr>
+                        ) : (
+                          filteredInstallments.map(inst => {
+                            const enr = enrollments.find(e => e.id === inst.enrollmentId);
+                            const stu = students.find(s => s.id === enr?.studentId);
+                            const coh = cohorts.find(c => c.id === enr?.cohortId);
+
                             return (
-                              <tr key={c.id} className="hover:bg-slate-50">
-                                <td className="p-3 font-bold text-slate-800">{c.code}</td>
-                                <td className="p-3 text-slate-700 font-medium">{teacher ? teacher.name : 'A definir'}</td>
-                                <td className="p-3 text-slate-600">R$ {Number(c.basePrice || 0).toFixed(2)}</td>
-                                <td className="p-3 text-slate-600 font-medium">{c.payoutPercentage || 50}%</td>
+                              <tr key={inst.id} className="hover:bg-slate-50">
+                                <td className="p-3 font-semibold">{inst.dueDate ? new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
+                                <td className="p-3 font-medium text-indigo-900">{stu?.name || 'N/A'}</td>
+                                <td className="p-3 text-slate-600">{coh?.code || 'N/A'}</td>
+                                <td className="p-3 text-slate-600">{inst.number}/{inst.totalParts}</td>
+                                <td className="p-3 font-bold">R$ {Number(inst.value || 0).toFixed(2)}</td>
+                                <td className="p-3">
+                                  {inst.status === 'paid' && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">Pago</span>}
+                                  {inst.status === 'pending' && <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">Pendente</span>}
+                                  {inst.status === 'cancelled' && <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">Cancelado</span>}
+                                </td>
                                 <td className="p-3 text-right space-x-1.5">
-                                  <button
-                                    onClick={() => setSelectedCohortForStudents(c)}
-                                    className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-semibold border border-indigo-200"
-                                  >
-                                    Ver Alunos ({enrolledCount})
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingCohort(c)}
-                                    className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-semibold border border-amber-200"
-                                  >
-                                    Editar
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteCohort(c.id)}
-                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
-                                  >
-                                    Excluir
-                                  </button>
+                                  {inst.status !== 'cancelled' && (
+                                    <>
+                                      <button onClick={() => handlePayInstallment(inst.id)} className={`px-2.5 py-1 rounded text-xs font-semibold ${inst.status === 'paid' ? 'bg-slate-100 text-slate-600 border' : 'bg-emerald-600 text-white'}`}>
+                                        {inst.status === 'paid' ? 'Desfazer' : 'Marcar Pago'}
+                                      </button>
+                                      <button onClick={() => handleCancelInstallment(inst.id)} className="px-2 py-1 bg-rose-50 text-rose-700 rounded text-xs border border-rose-200">Cancelar</button>
+                                    </>
+                                  )}
                                 </td>
                               </tr>
                             );
-                          })}
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* FINANCEIRO (PARCELAS DE ALUNOS) */}
-          {activeTab === 'finance' && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-800">Controle Financeiro de Parcelas & Mensalidades</h2>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Filtrar por Aluno</label>
-                  <input
-                    type="text"
-                    placeholder="Nome do aluno..."
-                    value={finFilterStudent}
-                    onChange={e => setFinFilterStudent(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded"
-                  />
                 </div>
-                <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Filtrar por Turma</label>
-                  <select
-                    value={finFilterCohort}
-                    onChange={e => setFinFilterCohort(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded"
-                  >
-                    <option value="">Todas as Turmas</option>
-                    {cohorts.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Vencimento De</label>
-                  <input
-                    type="date"
-                    value={finFilterDateStart}
-                    onChange={e => setFinFilterDateStart(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Vencimento Até</label>
-                  <input
-                    type="date"
-                    value={finFilterDateEnd}
-                    onChange={e => setFinFilterDateEnd(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded"
-                  />
-                </div>
-              </div>
+              )}
 
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
-                    <tr>
-                      <th className="p-3">Vencimento ↑</th>
-                      <th className="p-3">Aluno</th>
-                      <th className="p-3">Turma</th>
-                      <th className="p-3">Parcela</th>
-                      <th className="p-3">Forma</th>
-                      <th className="p-3">Valor</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {filteredInstallments.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" className="p-6 text-center text-slate-400">
-                          Nenhum lançamento financeiro encontrado.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredInstallments.map(inst => {
-                        const enr = (enrollments || []).find(e => e.id === inst.enrollmentId);
-                        const stu = (students || []).find(s => s.id === enr?.studentId);
-                        const coh = (cohorts || []).find(c => c.id === enr?.cohortId);
+              {/* REPASSES A DOCENTES */}
+              {activeTab === 'payouts' && (
+                <div className="space-y-6">
+                  <h2 className="text-xl font-bold text-slate-800">Extrato Detalhado de Repasses a Docentes (Nuvem)</h2>
+                  {teachers.filter(t => !payoutTeacherFilter || t.id === Number(payoutTeacherFilter)).map(teacher => {
+                    const teacherCohorts = cohorts.filter(c => Number(c.teacherId) === teacher.id);
 
-                        return (
-                          <tr key={inst.id} className="hover:bg-slate-50">
-                            <td className="p-3 font-semibold text-slate-800">
-                              {inst.dueDate ? new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
-                            </td>
-                            <td className="p-3 font-medium text-indigo-900">{stu?.name || 'N/A'}</td>
-                            <td className="p-3 text-slate-600">{coh?.code || 'N/A'}</td>
-                            <td className="p-3 text-slate-600">{inst.number || 1}/{inst.totalParts || 1}</td>
-                            <td className="p-3 text-slate-600 text-xs">{inst.paymentMethod || 'PIX'}</td>
-                            <td className="p-3 font-bold text-slate-800">R$ {Number(inst.value || 0).toFixed(2)}</td>
-                            <td className="p-3">
-                              {inst.status === 'paid' && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Pago</span>}
-                              {inst.status === 'pending' && <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Pendente</span>}
-                              {inst.status === 'cancelled' && <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-0.5 rounded-full">Cancelado</span>}
-                            </td>
-                            <td className="p-3 text-right space-x-1.5">
-                              {inst.status !== 'cancelled' && (
-                                <>
-                                  <button
-                                    onClick={() => handlePayInstallment(inst.id)}
-                                    className={`px-2.5 py-1 rounded text-xs font-semibold ${inst.status === 'paid' ? 'bg-slate-100 text-slate-600 border' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
-                                  >
-                                    {inst.status === 'paid' ? 'Desfazer Pago' : 'Marcar Pago'}
-                                  </button>
-                                  <button
-                                    onClick={() => handleCancelInstallment(inst.id)}
-                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200"
-                                  >
-                                    Cancelar
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* EXTRATO DE REPASSES A DOCENTES (ETAPA 4 IMPLEMENTADA) */}
-          {activeTab === 'payouts' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-800">Extrato Detalhado de Repasses a Docentes</h2>
-                {payoutTeacherFilter && (
-                  <button
-                    onClick={() => setPayoutTeacherFilter('')}
-                    className="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-3 py-1.5 rounded-lg"
-                  >
-                    Mostrar Todos os Professores
-                  </button>
-                )}
-              </div>
-
-              {/* Filtro por Professor */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 max-w-sm">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Filtrar por Professor</label>
-                <select
-                  value={payoutTeacherFilter}
-                  onChange={e => setPayoutTeacherFilter(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full p-2 border border-slate-300 rounded text-xs"
-                >
-                  <option value="">-- Todos os Professores --</option>
-                  {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-
-              {/* Tabela/Lista de Repasses por Professor */}
-              {teachers
-                .filter(t => !payoutTeacherFilter || t.id === Number(payoutTeacherFilter))
-                .map(teacher => {
-                  const teacherCohorts = cohorts.filter(c => Number(c.teacherId) === teacher.id);
-
-                  return (
-                    <div key={teacher.id} className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-4">
-                      <div className="flex justify-between items-start border-b pb-3">
-                        <div>
-                          <h3 className="font-bold text-base text-indigo-900">{teacher.name}</h3>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Chave PIX: <span className="font-mono font-semibold text-slate-800">{teacher.pixKey || 'Não cadastrada'}</span> | Tel: {teacher.phone || 'N/A'}
-                          </p>
+                    return (
+                      <div key={teacher.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-4">
+                        <div className="border-b pb-2">
+                          <h3 className="font-bold text-indigo-900">{teacher.name}</h3>
+                          <p className="text-xs text-slate-500">Chave PIX: <span className="font-mono font-semibold">{teacher.pixKey || 'Não cadastrada'}</span></p>
                         </div>
+
+                        {teacherCohorts.length === 0 ? <p className="text-xs text-slate-400 italic">Sem turmas vinculadas.</p> : (
+                          <div className="space-y-2">
+                            {teacherCohorts.map(cohort => {
+                              const activeStudentsCount = enrollments.filter(e => e.cohortId === cohort.id && e.status === 'active').length;
+                              const pricePerStudent = Number(cohort.basePrice || 0);
+                              const payoutPct = Number(cohort.payoutPercentage || 50);
+                              const totalCohortPayout = (activeStudentsCount * pricePerStudent) * (payoutPct / 100);
+                              const payoutKey = `${teacher.id}_${cohort.id}`;
+                              const isPayoutDone = teacherPayouts.includes(payoutKey);
+
+                              return (
+                                <div key={cohort.id} className="p-3 bg-slate-50 rounded-xl border flex justify-between items-center text-xs">
+                                  <div>
+                                    <span className="font-bold text-slate-800">{cohort.code}</span>
+                                    <span className="ml-3 text-slate-600">{activeStudentsCount} alunos ativos | Comissão: {payoutPct}%</span>
+                                  </div>
+                                  <div className="flex items-center space-x-3">
+                                    <span className="font-bold text-emerald-700">R$ {totalCohortPayout.toFixed(2)}</span>
+                                    <button onClick={() => handleTogglePayoutStatus(teacher.id, cohort.id)} className={`px-3 py-1.5 rounded-lg font-semibold ${isPayoutDone ? 'bg-slate-200 text-slate-700' : 'bg-emerald-600 text-white'}`}>
+                                      {isPayoutDone ? '✓ Repasse Efetuado' : 'Marcar Repasse Pago'}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
+                    );
+                  })}
+                </div>
+              )}
 
-                      {teacherCohorts.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic">Este professor não possui turmas vinculadas como responsável.</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {teacherCohorts.map(cohort => {
-                            const cohortEnrollments = enrollments.filter(e => e.cohortId === cohort.id && e.status === 'active');
-                            const activeStudentsCount = cohortEnrollments.length;
-                            const pricePerStudent = Number(cohort.basePrice || 0);
-                            const payoutPct = Number(cohort.payoutPercentage || 50);
-                            
-                            // Repasse calculado pelos alunos matriculados ativos
-                            const totalCohortPayout = (activeStudentsCount * pricePerStudent) * (payoutPct / 100);
-                            const payoutKey = `${teacher.id}_${cohort.id}`;
-                            const isPayoutDone = teacherPayouts.includes(payoutKey);
-
-                            return (
-                              <div key={cohort.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs">
-                                <div>
-                                  <span className="font-bold text-slate-800 text-sm">{cohort.code}</span>
-                                  <div className="text-slate-600 mt-1 space-x-3">
-                                    <span>Alunos Ativos: <strong>{activeStudentsCount}</strong></span>
-                                    <span>Mensalidade Base: R$ {pricePerStudent.toFixed(2)}</span>
-                                    <span>Comissão Docente: <strong>{payoutPct}%</strong></span>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center space-x-3 self-end md:self-auto">
-                                  <div className="text-right">
-                                    <span className="block text-[10px] text-slate-400 uppercase font-semibold">Valor a Repassar</span>
-                                    <span className="font-bold text-emerald-700 text-sm">R$ {totalCohortPayout.toFixed(2)}</span>
-                                  </div>
-
-                                  <button
-                                    onClick={() => handleTogglePayoutStatus(teacher.id, cohort.id)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isPayoutDone ? 'bg-slate-200 text-slate-700' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
-                                  >
-                                    {isPayoutDone ? '✓ Repasse Efetuado' : 'Marcar Repasse Pago'}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-
-          {/* AUDITORIA */}
-          {activeTab === 'audit' && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-slate-800">Trilha de Auditoria</h2>
-              <div className="bg-slate-900 text-slate-200 rounded-xl p-4 font-mono text-xs space-y-1">
-                {auditLogs.length === 0 ? <p className="text-slate-500">Nenhum log registrado.</p> : auditLogs.map(l => <div key={l.id}>[{l.timestamp}] [{l.user}]: {l.action}</div>)}
-              </div>
-            </div>
+              {/* AUDITORIA */}
+              {activeTab === 'audit' && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold text-slate-800">Trilha de Auditoria (Nuvem)</h2>
+                  <div className="bg-slate-900 text-slate-200 rounded-xl p-4 font-mono text-xs space-y-1">
+                    {auditLogs.length === 0 ? <p className="text-slate-500">Nenhum log registrado.</p> : auditLogs.map(l => <div key={l.id}>[{l.timestamp}] [{l.user}]: {l.action}</div>)}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>
 
-      {/* MODAL EDITAR ALUNO */}
-      {editingStudent && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Aluno</h3>
-            <form onSubmit={handleUpdateStudent} className="space-y-3 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
-                <input required type="text" value={editingStudent.name} onChange={e => setEditingStudent({ ...editingStudent, name: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">CPF</label>
-                  <input type="text" value={editingStudent.cpf || ''} onChange={e => setEditingStudent({ ...editingStudent, cpf: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
-                  <input type="date" value={editingStudent.birthDate || ''} onChange={e => setEditingStudent({ ...editingStudent, birthDate: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
-                  <input type="text" value={editingStudent.phone || ''} onChange={e => setEditingStudent({ ...editingStudent, phone: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">E-mail</label>
-                  <input type="email" value={editingStudent.email || ''} onChange={e => setEditingStudent({ ...editingStudent, email: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-              </div>
-              <div className="pt-2 flex justify-end space-x-2">
-                <button type="button" onClick={() => setEditingStudent(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDITAR PROFESSOR */}
-      {editingTeacher && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Professor</h3>
-            <form onSubmit={handleUpdateTeacher} className="space-y-3 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
-                <input required type="text" value={editingTeacher.name} onChange={e => setEditingTeacher({ ...editingTeacher, name: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
-                  <input type="date" value={editingTeacher.birthDate || ''} onChange={e => setEditingTeacher({ ...editingTeacher, birthDate: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Telefone</label>
-                  <input type="text" value={editingTeacher.phone || ''} onChange={e => setEditingTeacher({ ...editingTeacher, phone: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Chave PIX</label>
-                <input type="text" value={editingTeacher.pixKey || ''} onChange={e => setEditingTeacher({ ...editingTeacher, pixKey: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div className="pt-2 flex justify-end space-x-2">
-                <button type="button" onClick={() => setEditingTeacher(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDITAR CURSO BASE */}
-      {editingCourse && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Curso Base</h3>
-            <form onSubmit={handleUpdateCourse} className="space-y-3 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Curso *</label>
-                <input required type="text" value={editingCourse.name} onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Carga Horária (horas)</label>
-                <input type="number" value={editingCourse.workload || ''} onChange={e => setEditingCourse({ ...editingCourse, workload: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div className="pt-2 flex justify-end space-x-2">
-                <button type="button" onClick={() => setEditingCourse(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDITAR TURMA */}
-      {editingCohort && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Turma</h3>
-            <form onSubmit={handleUpdateCohort} className="space-y-3 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Curso Base *</label>
-                <select required value={editingCohort.baseCourseId} onChange={e => setEditingCohort({ ...editingCohort, baseCourseId: e.target.value })} className="w-full p-2 border rounded">
-                  <option value="">-- Selecione um Curso Base --</option>
-                  {baseCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Professor Responsável</label>
-                <select value={editingCohort.teacherId || ''} onChange={e => setEditingCohort({ ...editingCohort, teacherId: e.target.value })} className="w-full p-2 border rounded">
-                  <option value="">-- Selecione o Professor --</option>
-                  {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma</label>
-                  <input type="text" value={editingCohort.code || ''} onChange={e => setEditingCohort({ ...editingCohort, code: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">% Repasse Docente</label>
-                  <input type="number" value={editingCohort.payoutPercentage || '50'} onChange={e => setEditingCohort({ ...editingCohort, payoutPercentage: e.target.value })} className="w-full p-2 border rounded" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label>
-                <input type="number" value={editingCohort.basePrice || ''} onChange={e => setEditingCohort({ ...editingCohort, basePrice: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-              <div className="pt-2 flex justify-end space-x-2">
-                <button type="button" onClick={() => setEditingCohort(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL FICHA 360 DO ALUNO */}
-      {selectedStudentFor360 && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-slate-800">Ficha 360° do Aluno</h3>
-              <button onClick={() => setSelectedStudentFor360(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
-            </div>
-            <div className="space-y-4 text-sm">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <p className="font-bold text-indigo-900 text-base">{selectedStudentFor360.name}</p>
-                <p className="text-xs text-slate-600">CPF: {selectedStudentFor360.cpf || 'N/A'}</p>
-                <p className="text-xs text-slate-600">Contato: {selectedStudentFor360.phone} | {selectedStudentFor360.email}</p>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-slate-700 text-xs uppercase mb-2">Turmas Vinculadas & Status de Matrícula</h4>
-                {enrollments.filter(e => e.studentId === selectedStudentFor360.id).length === 0 ? (
-                  <p className="text-slate-400 text-xs italic">Este aluno ainda não está matriculado em nenhuma turma.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {enrollments.filter(e => e.studentId === selectedStudentFor360.id).map(enr => {
-                      const coh = cohorts.find(c => c.id === enr.cohortId);
-                      return (
-                        <div key={enr.id} className="p-3 border rounded-xl flex justify-between items-center bg-white shadow-sm">
-                          <div>
-                            <span className="font-bold text-slate-800">{coh?.code || 'Turma N/A'}</span>
-                            <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${enr.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                              {enr.status === 'suspended' ? 'Matrícula Suspensa' : 'Ativa'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleToggleSuspendEnrollment(enr.id)}
-                            className={`px-2.5 py-1 rounded text-xs font-semibold ${enr.status === 'suspended' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}
-                          >
-                            {enr.status === 'suspended' ? 'Reativar' : 'Suspender Matrícula'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ALUNOS DA TURMA */}
-      {selectedCohortForStudents && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-slate-800">Alunos na Turma: {selectedCohortForStudents.code}</h3>
-              <button onClick={() => setSelectedCohortForStudents(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
-            </div>
-            <div className="space-y-3">
-              {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).length === 0 ? (
-                <p className="text-slate-400 text-xs italic py-4 text-center">Nenhum aluno matriculado nesta turma ainda.</p>
-              ) : (
-                <ul className="divide-y border rounded-xl">
-                  {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).map(enr => {
-                    const stu = students.find(s => s.id === enr.studentId);
-                    return (
-                      <li key={enr.id} className="p-3 flex justify-between items-center text-sm">
-                        <span className="font-semibold text-slate-800">{stu?.name || 'Aluno N/A'}</span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${enr.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                          {enr.status === 'suspended' ? 'Suspensa' : 'Ativa'}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* MODAIS DE CADASTRO PADRÃO */}
       {showNewStudentModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Aluno</h3>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Aluno (Nuvem)</h3>
             <form onSubmit={handleAddStudent} className="space-y-3 text-sm">
               <div><label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label><input required type="text" value={studentForm.name} onChange={e => setStudentForm({ ...studentForm, name: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="grid grid-cols-2 gap-2">
@@ -1160,7 +788,7 @@ export default function App() {
               </div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewStudentModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar Aluno</button>
+                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar na Nuvem</button>
               </div>
             </form>
           </div>
@@ -1169,8 +797,8 @@ export default function App() {
 
       {showNewTeacherModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Professor</h3>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Professor (Nuvem)</h3>
             <form onSubmit={handleAddTeacher} className="space-y-3 text-sm">
               <div><label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label><input required type="text" value={teacherForm.name} onChange={e => setTeacherForm({ ...teacherForm, name: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="grid grid-cols-2 gap-2">
@@ -1180,7 +808,7 @@ export default function App() {
               <div><label className="block text-xs font-semibold text-slate-600 mb-1">Chave PIX</label><input type="text" value={teacherForm.pixKey} onChange={e => setTeacherForm({ ...teacherForm, pixKey: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewTeacherModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar Professor</button>
+                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar na Nuvem</button>
               </div>
             </form>
           </div>
@@ -1189,14 +817,14 @@ export default function App() {
 
       {showNewCourseModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-slate-800 mb-3">Cadastrar Novo Curso Base</h3>
             <form onSubmit={handleAddCourse} className="space-y-3 text-sm">
               <div><label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Curso *</label><input required type="text" value={courseForm.name} onChange={e => setCourseForm({ ...courseForm, name: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div><label className="block text-xs font-semibold text-slate-600 mb-1">Carga Horária (horas)</label><input type="number" value={courseForm.workload} onChange={e => setCourseForm({ ...courseForm, workload: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewCourseModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar Curso</button>
+                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Salvar na Nuvem</button>
               </div>
             </form>
           </div>
@@ -1205,7 +833,7 @@ export default function App() {
 
       {showNewCohortModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-slate-800 mb-3">Abrir Nova Turma</h3>
             <form onSubmit={handleAddCohort} className="space-y-3 text-sm">
               <div>
@@ -1229,7 +857,7 @@ export default function App() {
               <div><label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label><input type="number" value={cohortForm.basePrice} onChange={e => setCohortForm({ ...cohortForm, basePrice: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewCohortModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-emerald-600 text-white rounded font-semibold">Criar Turma</button>
+                <button type="submit" className="px-3 py-1.5 bg-emerald-600 text-white rounded font-semibold">Criar na Nuvem</button>
               </div>
             </form>
           </div>
@@ -1238,7 +866,7 @@ export default function App() {
 
       {showQuickEnrollModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-slate-800 mb-3">Nova Matrícula & Condição Financeira</h3>
             <form onSubmit={handleQuickEnroll} className="space-y-3 text-sm">
               <div>
@@ -1292,7 +920,7 @@ export default function App() {
 
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowQuickEnrollModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
-                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Confirmar Matrícula</button>
+                <button type="submit" className="px-3 py-1.5 bg-indigo-600 text-white rounded font-semibold">Confirmar na Nuvem</button>
               </div>
             </form>
           </div>
