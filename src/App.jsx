@@ -611,8 +611,8 @@ export default function App() {
                             <div className="mt-3 pt-2 border-t flex justify-between items-center">
                               <button onClick={() => setSelectedCourseFilter(c.id === selectedCourseFilter ? '' : c.id)} className="text-xs text-indigo-600 font-semibold">{selectedCourseFilter === c.id ? 'Ver Todas' : 'Filtrar Turmas →'}</button>
                               <div className="space-x-1">
-                                <button onClick={() => setEditingCourse(c)} className="text-xs text-amber-600 font-semibold px-1.5 py-0.5">Editar</button>
-                                <button onClick={() => handleDeleteCourse(c.id)} className="text-xs text-rose-600 font-semibold px-1.5 py-0.5">Excluir</button>
+                                <button onClick={() => setEditingCourse(c)} className="text-xs text-amber-600 font-semibold px-1.5 py-0.5 hover:bg-amber-50 rounded">Editar</button>
+                                <button onClick={() => handleDeleteCourse(c.id)} className="text-xs text-rose-600 font-semibold px-1.5 py-0.5 hover:bg-rose-50 rounded">Excluir</button>
                               </div>
                             </div>
                           </div>
@@ -623,9 +623,15 @@ export default function App() {
 
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-center mb-3">
-                      <h2 className="text-lg font-bold text-slate-800">Turmas</h2>
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-lg font-bold text-slate-800">Turmas</h2>
+                        {selectedCourseFilter && (
+                          <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-semibold">Filtrado por Curso</span>
+                        )}
+                      </div>
                       <button onClick={() => setShowNewCohortModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg">+ Abrir Turma</button>
                     </div>
+
                     {cohorts.length === 0 ? <p className="text-slate-400 text-xs italic">Nenhuma turma cadastrada.</p> : (
                       <div className="border rounded-xl overflow-x-auto">
                         <table className="w-full text-left text-sm">
@@ -641,6 +647,7 @@ export default function App() {
                           <tbody className="divide-y">
                             {cohorts.filter(c => !selectedCourseFilter || c.baseCourseId === Number(selectedCourseFilter)).map(c => {
                               const teacher = teachers.find(t => t.id === Number(c.teacherId));
+                              const enrolledCount = enrollments.filter(e => e.cohortId === c.id).length;
                               return (
                                 <tr key={c.id} className="hover:bg-slate-50">
                                   <td className="p-3 font-bold text-slate-800">{c.code}</td>
@@ -648,9 +655,9 @@ export default function App() {
                                   <td className="p-3 text-slate-600">R$ {Number(c.basePrice || 0).toFixed(2)}</td>
                                   <td className="p-3 text-slate-600">{c.payoutPercentage || 50}%</td>
                                   <td className="p-3 text-right space-x-1.5">
-                                    <button onClick={() => setSelectedCohortForStudents(c)} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-semibold border border-indigo-200">Ver Alunos</button>
-                                    <button onClick={() => setEditingCohort(c)} className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs font-semibold border border-amber-200">Editar</button>
-                                    <button onClick={() => handleDeleteCohort(c.id)} className="px-2 py-1 bg-rose-50 text-rose-700 rounded text-xs font-semibold border border-rose-200">Excluir</button>
+                                    <button onClick={() => setSelectedCohortForStudents(c)} className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-semibold border border-indigo-200">Ver Alunos ({enrolledCount})</button>
+                                    <button onClick={() => setEditingCohort(c)} className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-xs font-semibold border border-amber-200">Editar</button>
+                                    <button onClick={() => handleDeleteCohort(c.id)} className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-semibold border border-rose-200">Excluir</button>
                                   </td>
                                 </tr>
                               );
@@ -666,23 +673,70 @@ export default function App() {
               {/* FINANCEIRO */}
               {activeTab === 'finance' && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-bold text-slate-800">Controle Financeiro de Parcelas & Mensalidades</h2>
-                  <div className="overflow-x-auto border rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-slate-800">Controle Financeiro de Parcelas & Mensalidades</h2>
+                  </div>
+
+                  {/* Filtros Combinados do Financeiro */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Filtrar por Aluno</label>
+                      <input
+                        type="text"
+                        placeholder="Nome do aluno..."
+                        value={finFilterStudent}
+                        onChange={e => setFinFilterStudent(e.target.value)}
+                        className="w-full p-2 border border-slate-300 rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Filtrar por Turma</label>
+                      <select
+                        value={finFilterCohort}
+                        onChange={e => setFinFilterCohort(e.target.value)}
+                        className="w-full p-2 border border-slate-300 rounded"
+                      >
+                        <option value="">Todas as Turmas</option>
+                        {cohorts.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Vencimento De</label>
+                      <input
+                        type="date"
+                        value={finFilterDateStart}
+                        onChange={e => setFinFilterDateStart(e.target.value)}
+                        className="w-full p-2 border border-slate-300 rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-600 mb-1">Vencimento Até</label>
+                      <input
+                        type="date"
+                        value={finFilterDateEnd}
+                        onChange={e => setFinFilterDateEnd(e.target.value)}
+                        className="w-full p-2 border border-slate-300 rounded"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-slate-100">
+                      <thead className="bg-slate-100 text-slate-600 font-semibold border-b">
                         <tr>
                           <th className="p-3">Vencimento ↑</th>
                           <th className="p-3">Aluno</th>
                           <th className="p-3">Turma</th>
                           <th className="p-3">Parcela</th>
+                          <th className="p-3">Forma</th>
                           <th className="p-3">Valor</th>
                           <th className="p-3">Status</th>
                           <th className="p-3 text-right">Ações</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-slate-200">
                         {filteredInstallments.length === 0 ? (
-                          <tr><td colSpan="7" className="p-6 text-center text-slate-400">Nenhum lançamento financeiro na nuvem.</td></tr>
+                          <tr><td colSpan="8" className="p-6 text-center text-slate-400">Nenhum lançamento financeiro encontrado na nuvem.</td></tr>
                         ) : (
                           filteredInstallments.map(inst => {
                             const enr = enrollments.find(e => e.id === inst.enrollmentId);
@@ -691,11 +745,12 @@ export default function App() {
 
                             return (
                               <tr key={inst.id} className="hover:bg-slate-50">
-                                <td className="p-3 font-semibold">{inst.dueDate ? new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
+                                <td className="p-3 font-semibold text-slate-800">{inst.dueDate ? new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
                                 <td className="p-3 font-medium text-indigo-900">{stu?.name || 'N/A'}</td>
                                 <td className="p-3 text-slate-600">{coh?.code || 'N/A'}</td>
                                 <td className="p-3 text-slate-600">{inst.number}/{inst.totalParts}</td>
-                                <td className="p-3 font-bold">R$ {Number(inst.value || 0).toFixed(2)}</td>
+                                <td className="p-3 text-slate-600 text-xs">{inst.paymentMethod || 'PIX'}</td>
+                                <td className="p-3 font-bold text-slate-800">R$ {Number(inst.value || 0).toFixed(2)}</td>
                                 <td className="p-3">
                                   {inst.status === 'paid' && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">Pago</span>}
                                   {inst.status === 'pending' && <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">Pendente</span>}
@@ -850,6 +905,103 @@ export default function App() {
                 <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR CURSO BASE */}
+      {editingCourse && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Curso Base</h3>
+            <form onSubmit={handleUpdateCourse} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nome do Curso *</label>
+                <input required type="text" value={editingCourse.name || ''} onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Carga Horária (horas)</label>
+                <input type="number" value={editingCourse.workload || ''} onChange={e => setEditingCourse({ ...editingCourse, workload: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingCourse(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR TURMA */}
+      {editingCohort && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">Editar Turma</h3>
+            <form onSubmit={handleUpdateCohort} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Curso Base *</label>
+                <select required value={editingCohort.baseCourseId || ''} onChange={e => setEditingCohort({ ...editingCohort, baseCourseId: e.target.value })} className="w-full p-2 border rounded">
+                  <option value="">-- Selecione um Curso Base --</option>
+                  {baseCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Professor Responsável</label>
+                <select value={editingCohort.teacherId || ''} onChange={e => setEditingCohort({ ...editingCohort, teacherId: e.target.value })} className="w-full p-2 border rounded">
+                  <option value="">-- Selecione o Professor --</option>
+                  {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma</label>
+                  <input type="text" value={editingCohort.code || ''} onChange={e => setEditingCohort({ ...editingCohort, code: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">% Repasse Docente</label>
+                  <input type="number" value={editingCohort.payoutPercentage || '50'} onChange={e => setEditingCohort({ ...editingCohort, payoutPercentage: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label>
+                <input type="number" value={editingCohort.basePrice || ''} onChange={e => setEditingCohort({ ...editingCohort, basePrice: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+              <div className="pt-2 flex justify-end space-x-2">
+                <button type="button" onClick={() => setEditingCohort(null)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
+                <button type="submit" className="px-3 py-1.5 bg-amber-600 text-white rounded font-semibold">Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ALUNOS DA TURMA */}
+      {selectedCohortForStudents && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">Alunos na Turma: {selectedCohortForStudents.code}</h3>
+              <button onClick={() => setSelectedCohortForStudents(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <div className="space-y-3">
+              {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).length === 0 ? (
+                <p className="text-slate-400 text-xs italic py-4 text-center">Nenhum aluno matriculado nesta turma ainda.</p>
+              ) : (
+                <ul className="divide-y border rounded-xl">
+                  {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).map(enr => {
+                    const stu = students.find(s => s.id === enr.studentId);
+                    return (
+                      <li key={enr.id} className="p-3 flex justify-between items-center text-sm">
+                        <span className="font-semibold text-slate-800">{stu?.name || 'Aluno N/A'}</span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${enr.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {enr.status === 'suspended' ? 'Suspensa' : 'Ativa'}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       )}
