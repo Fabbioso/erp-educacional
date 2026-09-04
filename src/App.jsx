@@ -147,9 +147,18 @@ export default function App() {
   };
 
   const handleDeleteStudent = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este aluno?')) {
+    if (window.confirm('Tem certeza que deseja excluir este aluno? Esta ação também removerá as matrículas associadas.')) {
+      // 1. Encontrar e apagar as matrículas do aluno
+      const studentEnrollments = enrollments.filter(e => e.studentId === id);
+      for (let enr of studentEnrollments) {
+        await supabase.from('installments').delete().eq('enrollment_id', enr.id);
+      }
+      await supabase.from('enrollments').delete().eq('student_id', id);
+
+      // 2. Apagar o registro do aluno
       await supabase.from('students').delete().eq('id', id);
-      logAction(`Aluno excluído ID: ${id}`);
+
+      logAction(`Aluno e matrículas excluídos ID: ${id}`);
       fetchAllData();
     }
   };
@@ -647,7 +656,8 @@ export default function App() {
                           <tbody className="divide-y">
                             {cohorts.filter(c => !selectedCourseFilter || c.baseCourseId === Number(selectedCourseFilter)).map(c => {
                               const teacher = teachers.find(t => t.id === Number(c.teacherId));
-                              const enrolledCount = enrollments.filter(e => e.cohortId === c.id).length;
+                              // Contar apenas alunos cujos cadastros existem
+                              const enrolledCount = enrollments.filter(e => e.cohortId === c.id && students.some(s => s.id === e.studentId)).length;
                               return (
                                 <tr key={c.id} className="hover:bg-slate-50">
                                   <td className="p-3 font-bold text-slate-800">{c.code}</td>
@@ -746,7 +756,7 @@ export default function App() {
                             return (
                               <tr key={inst.id} className="hover:bg-slate-50">
                                 <td className="p-3 font-semibold text-slate-800">{inst.dueDate ? new Date(inst.dueDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
-                                <td className="p-3 font-medium text-indigo-900">{stu?.name || 'N/A'}</td>
+                                <td className="p-3 font-medium text-indigo-900">{stu?.name || 'Aluno Excluído'}</td>
                                 <td className="p-3 text-slate-600">{coh?.code || 'N/A'}</td>
                                 <td className="p-3 text-slate-600">{inst.number}/{inst.totalParts}</td>
                                 <td className="p-3 text-slate-600 text-xs">{inst.paymentMethod || 'PIX'}</td>
@@ -793,7 +803,8 @@ export default function App() {
                         {teacherCohorts.length === 0 ? <p className="text-xs text-slate-400 italic">Sem turmas vinculadas.</p> : (
                           <div className="space-y-2">
                             {teacherCohorts.map(cohort => {
-                              const activeStudentsCount = enrollments.filter(e => e.cohortId === cohort.id && e.status === 'active').length;
+                              // Filtrar matrículas ativas apenas de alunos existentes
+                              const activeStudentsCount = enrollments.filter(e => e.cohortId === cohort.id && e.status === 'active' && students.some(s => s.id === e.studentId)).length;
                               const pricePerStudent = Number(cohort.basePrice || 0);
                               const payoutPct = Number(cohort.payoutPercentage || 50);
                               const totalCohortPayout = (activeStudentsCount * pricePerStudent) * (payoutPct / 100);
@@ -984,15 +995,16 @@ export default function App() {
               <button onClick={() => setSelectedCohortForStudents(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
             </div>
             <div className="space-y-3">
-              {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).length === 0 ? (
-                <p className="text-slate-400 text-xs italic py-4 text-center">Nenhum aluno matriculado nesta turma ainda.</p>
+              {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id && students.some(s => s.id === e.studentId)).length === 0 ? (
+                <p className="text-slate-400 text-xs italic py-4 text-center">Nenhum aluno cadastrado matriculado nesta turma.</p>
               ) : (
                 <ul className="divide-y border rounded-xl">
                   {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).map(enr => {
                     const stu = students.find(s => s.id === enr.studentId);
+                    if (!stu) return null; // Filtrar matrículas de alunos apagados
                     return (
                       <li key={enr.id} className="p-3 flex justify-between items-center text-sm">
-                        <span className="font-semibold text-slate-800">{stu?.name || 'Aluno N/A'}</span>
+                        <span className="font-semibold text-slate-800">{stu.name}</span>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${enr.status === 'suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
                           {enr.status === 'suspended' ? 'Suspensa' : 'Ativa'}
                         </span>
