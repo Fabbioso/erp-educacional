@@ -148,14 +148,11 @@ export default function App() {
 
   const handleDeleteStudent = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este aluno? Esta ação também removerá as matrículas associadas.')) {
-      // 1. Encontrar e apagar as matrículas do aluno
       const studentEnrollments = enrollments.filter(e => e.studentId === id);
       for (let enr of studentEnrollments) {
         await supabase.from('installments').delete().eq('enrollment_id', enr.id);
       }
       await supabase.from('enrollments').delete().eq('student_id', id);
-
-      // 2. Apagar o registro do aluno
       await supabase.from('students').delete().eq('id', id);
 
       logAction(`Aluno e matrículas excluídos ID: ${id}`);
@@ -656,7 +653,6 @@ export default function App() {
                           <tbody className="divide-y">
                             {cohorts.filter(c => !selectedCourseFilter || c.baseCourseId === Number(selectedCourseFilter)).map(c => {
                               const teacher = teachers.find(t => t.id === Number(c.teacherId));
-                              // Contar apenas alunos cujos cadastros existem
                               const enrolledCount = enrollments.filter(e => e.cohortId === c.id && students.some(s => s.id === e.studentId)).length;
                               return (
                                 <tr key={c.id} className="hover:bg-slate-50">
@@ -789,48 +785,71 @@ export default function App() {
               {/* REPASSES A DOCENTES */}
               {activeTab === 'payouts' && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-bold text-slate-800">Extrato Detalhado de Repasses a Docentes (Nuvem)</h2>
-                  {teachers.filter(t => !payoutTeacherFilter || t.id === Number(payoutTeacherFilter)).map(teacher => {
-                    const teacherCohorts = cohorts.filter(c => Number(c.teacherId) === teacher.id);
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <h2 className="text-xl font-bold text-slate-800">Extrato Detalhado de Repasses a Docentes</h2>
+                    
+                    {/* Filtro por Professor */}
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="font-semibold text-slate-600">Filtrar Docente:</span>
+                      <select
+                        value={payoutTeacherFilter}
+                        onChange={e => setPayoutTeacherFilter(e.target.value)}
+                        className="p-2 border border-slate-300 rounded-lg bg-white shadow-sm font-medium"
+                      >
+                        <option value="">Todos os Docentes</option>
+                        {teachers.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-                    return (
-                      <div key={teacher.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-4">
-                        <div className="border-b pb-2">
-                          <h3 className="font-bold text-indigo-900">{teacher.name}</h3>
-                          <p className="text-xs text-slate-500">Chave PIX: <span className="font-mono font-semibold">{teacher.pixKey || 'Não cadastrada'}</span></p>
-                        </div>
+                  {teachers.filter(t => !payoutTeacherFilter || t.id === Number(payoutTeacherFilter)).length === 0 ? (
+                    <p className="text-slate-400 text-xs italic py-6 text-center">Nenhum professor encontrado com os filtros aplicados.</p>
+                  ) : (
+                    teachers.filter(t => !payoutTeacherFilter || t.id === Number(payoutTeacherFilter)).map(teacher => {
+                      const teacherCohorts = cohorts.filter(c => Number(c.teacherId) === teacher.id);
 
-                        {teacherCohorts.length === 0 ? <p className="text-xs text-slate-400 italic">Sem turmas vinculadas.</p> : (
-                          <div className="space-y-2">
-                            {teacherCohorts.map(cohort => {
-                              // Filtrar matrículas ativas apenas de alunos existentes
-                              const activeStudentsCount = enrollments.filter(e => e.cohortId === cohort.id && e.status === 'active' && students.some(s => s.id === e.studentId)).length;
-                              const pricePerStudent = Number(cohort.basePrice || 0);
-                              const payoutPct = Number(cohort.payoutPercentage || 50);
-                              const totalCohortPayout = (activeStudentsCount * pricePerStudent) * (payoutPct / 100);
-                              const payoutKey = `${teacher.id}_${cohort.id}`;
-                              const isPayoutDone = teacherPayouts.includes(payoutKey);
-
-                              return (
-                                <div key={cohort.id} className="p-3 bg-slate-50 rounded-xl border flex justify-between items-center text-xs">
-                                  <div>
-                                    <span className="font-bold text-slate-800">{cohort.code}</span>
-                                    <span className="ml-3 text-slate-600">{activeStudentsCount} alunos ativos | Comissão: {payoutPct}%</span>
-                                  </div>
-                                  <div className="flex items-center space-x-3">
-                                    <span className="font-bold text-emerald-700">R$ {totalCohortPayout.toFixed(2)}</span>
-                                    <button onClick={() => handleTogglePayoutStatus(teacher.id, cohort.id)} className={`px-3 py-1.5 rounded-lg font-semibold ${isPayoutDone ? 'bg-slate-200 text-slate-700' : 'bg-emerald-600 text-white'}`}>
-                                      {isPayoutDone ? '✓ Repasse Efetuado' : 'Marcar Repasse Pago'}
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                      return (
+                        <div key={teacher.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-4">
+                          <div className="border-b pb-2 flex justify-between items-center">
+                            <div>
+                              <h3 className="font-bold text-indigo-900">{teacher.name}</h3>
+                              <p className="text-xs text-slate-500">Chave PIX: <span className="font-mono font-semibold">{teacher.pixKey || 'Não cadastrada'}</span></p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+
+                          {teacherCohorts.length === 0 ? <p className="text-xs text-slate-400 italic">Sem turmas vinculadas a este docente.</p> : (
+                            <div className="space-y-2">
+                              {teacherCohorts.map(cohort => {
+                                const activeStudentsCount = enrollments.filter(e => e.cohortId === cohort.id && e.status === 'active' && students.some(s => s.id === e.studentId)).length;
+                                const pricePerStudent = Number(cohort.basePrice || 0);
+                                const payoutPct = Number(cohort.payoutPercentage || 50);
+                                const totalCohortPayout = (activeStudentsCount * pricePerStudent) * (payoutPct / 100);
+                                const payoutKey = `${teacher.id}_${cohort.id}`;
+                                const isPayoutDone = teacherPayouts.includes(payoutKey);
+
+                                return (
+                                  <div key={cohort.id} className="p-3 bg-slate-50 rounded-xl border flex justify-between items-center text-xs">
+                                    <div>
+                                      <span className="font-bold text-slate-800">{cohort.code}</span>
+                                      <span className="ml-3 text-slate-600">{activeStudentsCount} alunos ativos | Comissão: {payoutPct}%</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                      <span className="font-bold text-emerald-700">R$ {totalCohortPayout.toFixed(2)}</span>
+                                      <button onClick={() => handleTogglePayoutStatus(teacher.id, cohort.id)} className={`px-3 py-1.5 rounded-lg font-semibold ${isPayoutDone ? 'bg-slate-200 text-slate-700' : 'bg-emerald-600 text-white'}`}>
+                                        {isPayoutDone ? '✓ Repasse Efetuado' : 'Marcar Repasse Pago'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
 
@@ -1001,7 +1020,7 @@ export default function App() {
                 <ul className="divide-y border rounded-xl">
                   {enrollments.filter(e => e.cohortId === selectedCohortForStudents.id).map(enr => {
                     const stu = students.find(s => s.id === enr.studentId);
-                    if (!stu) return null; // Filtrar matrículas de alunos apagados
+                    if (!stu) return null;
                     return (
                       <li key={enr.id} className="p-3 flex justify-between items-center text-sm">
                         <span className="font-semibold text-slate-800">{stu.name}</span>
