@@ -5,7 +5,7 @@ const IconUsers = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 100 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
 );
 const IconGraduation = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
 );
 const IconBook = ({ className = "w-5 h-5" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -41,6 +41,9 @@ export default function App() {
   const [installments, setInstallments] = useState(() => {
     try { return JSON.parse(localStorage.getItem('merkaba_installments')) || []; } catch { return []; }
   });
+  const [teacherPayouts, setTeacherPayouts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('merkaba_teacherPayouts')) || []; } catch { return []; }
+  });
   const [auditLogs, setAuditLogs] = useState(() => {
     try { return JSON.parse(localStorage.getItem('merkaba_auditLogs')) || []; } catch { return []; }
   });
@@ -51,9 +54,10 @@ export default function App() {
   useEffect(() => { localStorage.setItem('merkaba_cohorts', JSON.stringify(cohorts)); }, [cohorts]);
   useEffect(() => { localStorage.setItem('merkaba_enrollments', JSON.stringify(enrollments)); }, [enrollments]);
   useEffect(() => { localStorage.setItem('merkaba_installments', JSON.stringify(installments)); }, [installments]);
+  useEffect(() => { localStorage.setItem('merkaba_teacherPayouts', JSON.stringify(teacherPayouts)); }, [teacherPayouts]);
   useEffect(() => { localStorage.setItem('merkaba_auditLogs', JSON.stringify(auditLogs)); }, [auditLogs]);
 
-  // Modais de Criação
+  // Modais
   const [showQuickEnrollModal, setShowQuickEnrollModal] = useState(false);
   const [showNewStudentModal, setShowNewStudentModal] = useState(false);
   const [showNewTeacherModal, setShowNewTeacherModal] = useState(false);
@@ -66,22 +70,23 @@ export default function App() {
   const [editingCourse, setEditingCourse] = useState(null);
   const [editingCohort, setEditingCohort] = useState(null);
 
-  // Modais de Atalhos Rápidos
+  // Modais de Atalhos
   const [selectedStudentFor360, setSelectedStudentFor360] = useState(null);
   const [selectedCohortForStudents, setSelectedCohortForStudents] = useState(null);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState('');
 
-  // Filtros Financeiros
+  // Filtros Financeiros e Repasses (Etapa 4)
   const [finFilterStudent, setFinFilterStudent] = useState('');
   const [finFilterCohort, setFinFilterCohort] = useState('');
   const [finFilterDateStart, setFinFilterDateStart] = useState('');
   const [finFilterDateEnd, setFinFilterDateEnd] = useState('');
+  const [payoutTeacherFilter, setPayoutTeacherFilter] = useState('');
 
   // Formulários
   const [studentForm, setStudentForm] = useState({ name: '', cpf: '', email: '', phone: '', birthDate: '' });
   const [teacherForm, setTeacherForm] = useState({ name: '', cpf: '', email: '', phone: '', pixKey: '', birthDate: '' });
   const [courseForm, setCourseForm] = useState({ name: '', workload: '', description: '' });
-  const [cohortForm, setCohortForm] = useState({ baseCourseId: '', code: '', startDate: '', basePrice: '' });
+  const [cohortForm, setCohortForm] = useState({ baseCourseId: '', teacherId: '', code: '', startDate: '', basePrice: '', payoutPercentage: '50' });
   const [quickForm, setQuickForm] = useState({
     studentId: '', cohortId: '', paymentMethod: 'PIX', paymentType: 'vista', installmentsCount: 1, customValue: '', dueDate: new Date().toISOString().split('T')[0]
   });
@@ -187,16 +192,27 @@ export default function App() {
   const handleAddCohort = (e) => {
     e.preventDefault();
     if (!cohortForm.baseCourseId) return;
-    const newCohort = { id: Date.now(), ...cohortForm, baseCourseId: Number(cohortForm.baseCourseId) };
+    const newCohort = {
+      id: Date.now(),
+      ...cohortForm,
+      baseCourseId: Number(cohortForm.baseCourseId),
+      teacherId: cohortForm.teacherId ? Number(cohortForm.teacherId) : null,
+      payoutPercentage: Number(cohortForm.payoutPercentage) || 50
+    };
     setCohorts(prev => [...prev, newCohort]);
     logAction(`Nova turma criada: ${newCohort.code}`);
     setShowNewCohortModal(false);
-    setCohortForm({ baseCourseId: '', code: '', startDate: '', basePrice: '' });
+    setCohortForm({ baseCourseId: '', teacherId: '', code: '', startDate: '', basePrice: '', payoutPercentage: '50' });
   };
 
   const handleUpdateCohort = (e) => {
     e.preventDefault();
-    setCohorts(prev => prev.map(c => c.id === editingCohort.id ? { ...editingCohort, baseCourseId: Number(editingCohort.baseCourseId) } : c));
+    setCohorts(prev => prev.map(c => c.id === editingCohort.id ? {
+      ...editingCohort,
+      baseCourseId: Number(editingCohort.baseCourseId),
+      teacherId: editingCohort.teacherId ? Number(editingCohort.teacherId) : null,
+      payoutPercentage: Number(editingCohort.payoutPercentage) || 50
+    } : c));
     logAction(`Turma atualizada: ${editingCohort.code}`);
     setEditingCohort(null);
   };
@@ -306,6 +322,17 @@ export default function App() {
     }
   };
 
+  // REPASSES A DOCENTES (ETAPA 4)
+  const handleTogglePayoutStatus = (teacherId, cohortId) => {
+    const key = `${teacherId}_${cohortId}`;
+    setTeacherPayouts(prev => {
+      const isPaid = prev.includes(key);
+      const next = isPaid ? prev.filter(k => k !== key) : [...prev, key];
+      logAction(`Status do repasse para professor ID ${teacherId} na turma ID ${cohortId}: ${isPaid ? 'Pendente' : 'Pago'}`);
+      return next;
+    });
+  };
+
   // Lógica de Filtro e Ordenação Segura
   const filteredInstallments = (installments || [])
     .filter(inst => {
@@ -374,7 +401,11 @@ export default function App() {
           </button>
 
           <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'finance' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
-            <div className="flex items-center space-x-3"><IconDollar className="w-5 h-5" /><span>Financeiro & Repasses</span></div>
+            <div className="flex items-center space-x-3"><IconDollar className="w-5 h-5" /><span>Financeiro</span></div>
+          </button>
+
+          <button onClick={() => setActiveTab('payouts')} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'payouts' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
+            <div className="flex items-center space-x-3"><IconDollar className="w-5 h-5 text-emerald-600" /><span>Repasses a Docentes</span></div>
           </button>
 
           <button onClick={() => setActiveTab('audit')} className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'audit' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
@@ -533,10 +564,13 @@ export default function App() {
                           <td className="p-3 font-mono text-xs text-slate-600">{t.pixKey || 'N/A'}</td>
                           <td className="p-3 text-right space-x-1.5">
                             <button
-                              onClick={() => setActiveTab('finance')}
-                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-xs font-semibold border border-emerald-200"
+                              onClick={() => {
+                                setPayoutTeacherFilter(t.id);
+                                setActiveTab('payouts');
+                              }}
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-xs font-semibold border border-emerald-200"
                             >
-                              Repasses
+                              Ver Repasses PIX →
                             </button>
                             <button
                               onClick={() => setEditingTeacher(t)}
@@ -617,8 +651,9 @@ export default function App() {
                       <thead className="bg-slate-100">
                         <tr>
                           <th className="p-3">Código</th>
+                          <th className="p-3">Professor Responsável</th>
                           <th className="p-3">Preço Base</th>
-                          <th className="p-3">Alunos Matriculados</th>
+                          <th className="p-3">Repasse Docente</th>
                           <th className="p-3 text-right">Ações & Atalhos</th>
                         </tr>
                       </thead>
@@ -626,22 +661,20 @@ export default function App() {
                         {cohorts
                           .filter(c => !selectedCourseFilter || c.baseCourseId === Number(selectedCourseFilter))
                           .map(c => {
+                            const teacher = teachers.find(t => t.id === Number(c.teacherId));
                             const enrolledCount = enrollments.filter(e => e.cohortId === c.id).length;
                             return (
                               <tr key={c.id} className="hover:bg-slate-50">
                                 <td className="p-3 font-bold text-slate-800">{c.code}</td>
+                                <td className="p-3 text-slate-700 font-medium">{teacher ? teacher.name : 'A definir'}</td>
                                 <td className="p-3 text-slate-600">R$ {Number(c.basePrice || 0).toFixed(2)}</td>
-                                <td className="p-3">
-                                  <span className="bg-slate-200 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                                    {enrolledCount} alunos
-                                  </span>
-                                </td>
+                                <td className="p-3 text-slate-600 font-medium">{c.payoutPercentage || 50}%</td>
                                 <td className="p-3 text-right space-x-1.5">
                                   <button
                                     onClick={() => setSelectedCohortForStudents(c)}
                                     className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs font-semibold border border-indigo-200"
                                   >
-                                    Ver Alunos
+                                    Ver Alunos ({enrolledCount})
                                   </button>
                                   <button
                                     onClick={() => setEditingCohort(c)}
@@ -667,7 +700,7 @@ export default function App() {
             </div>
           )}
 
-          {/* FINANCEIRO */}
+          {/* FINANCEIRO (PARCELAS DE ALUNOS) */}
           {activeTab === 'finance' && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
@@ -783,6 +816,101 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* EXTRATO DE REPASSES A DOCENTES (ETAPA 4 IMPLEMENTADA) */}
+          {activeTab === 'payouts' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-slate-800">Extrato Detalhado de Repasses a Docentes</h2>
+                {payoutTeacherFilter && (
+                  <button
+                    onClick={() => setPayoutTeacherFilter('')}
+                    className="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-3 py-1.5 rounded-lg"
+                  >
+                    Mostrar Todos os Professores
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro por Professor */}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 max-w-sm">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Filtrar por Professor</label>
+                <select
+                  value={payoutTeacherFilter}
+                  onChange={e => setPayoutTeacherFilter(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full p-2 border border-slate-300 rounded text-xs"
+                >
+                  <option value="">-- Todos os Professores --</option>
+                  {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+
+              {/* Tabela/Lista de Repasses por Professor */}
+              {teachers
+                .filter(t => !payoutTeacherFilter || t.id === Number(payoutTeacherFilter))
+                .map(teacher => {
+                  const teacherCohorts = cohorts.filter(c => Number(c.teacherId) === teacher.id);
+
+                  return (
+                    <div key={teacher.id} className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-4">
+                      <div className="flex justify-between items-start border-b pb-3">
+                        <div>
+                          <h3 className="font-bold text-base text-indigo-900">{teacher.name}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Chave PIX: <span className="font-mono font-semibold text-slate-800">{teacher.pixKey || 'Não cadastrada'}</span> | Tel: {teacher.phone || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {teacherCohorts.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic">Este professor não possui turmas vinculadas como responsável.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {teacherCohorts.map(cohort => {
+                            const cohortEnrollments = enrollments.filter(e => e.cohortId === cohort.id && e.status === 'active');
+                            const activeStudentsCount = cohortEnrollments.length;
+                            const pricePerStudent = Number(cohort.basePrice || 0);
+                            const payoutPct = Number(cohort.payoutPercentage || 50);
+                            
+                            // Repasse calculado pelos alunos matriculados ativos
+                            const totalCohortPayout = (activeStudentsCount * pricePerStudent) * (payoutPct / 100);
+                            const payoutKey = `${teacher.id}_${cohort.id}`;
+                            const isPayoutDone = teacherPayouts.includes(payoutKey);
+
+                            return (
+                              <div key={cohort.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs">
+                                <div>
+                                  <span className="font-bold text-slate-800 text-sm">{cohort.code}</span>
+                                  <div className="text-slate-600 mt-1 space-x-3">
+                                    <span>Alunos Ativos: <strong>{activeStudentsCount}</strong></span>
+                                    <span>Mensalidade Base: R$ {pricePerStudent.toFixed(2)}</span>
+                                    <span>Comissão Docente: <strong>{payoutPct}%</strong></span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-3 self-end md:self-auto">
+                                  <div className="text-right">
+                                    <span className="block text-[10px] text-slate-400 uppercase font-semibold">Valor a Repassar</span>
+                                    <span className="font-bold text-emerald-700 text-sm">R$ {totalCohortPayout.toFixed(2)}</span>
+                                  </div>
+
+                                  <button
+                                    onClick={() => handleTogglePayoutStatus(teacher.id, cohort.id)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isPayoutDone ? 'bg-slate-200 text-slate-700' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+                                  >
+                                    {isPayoutDone ? '✓ Repasse Efetuado' : 'Marcar Repasse Pago'}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
 
@@ -907,8 +1035,21 @@ export default function App() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma</label>
-                <input type="text" value={editingCohort.code || ''} onChange={e => setEditingCohort({ ...editingCohort, code: e.target.value })} className="w-full p-2 border rounded" />
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Professor Responsável</label>
+                <select value={editingCohort.teacherId || ''} onChange={e => setEditingCohort({ ...editingCohort, teacherId: e.target.value })} className="w-full p-2 border rounded">
+                  <option value="">-- Selecione o Professor --</option>
+                  {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma</label>
+                  <input type="text" value={editingCohort.code || ''} onChange={e => setEditingCohort({ ...editingCohort, code: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">% Repasse Docente</label>
+                  <input type="number" value={editingCohort.payoutPercentage || '50'} onChange={e => setEditingCohort({ ...editingCohort, payoutPercentage: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label>
@@ -1074,7 +1215,17 @@ export default function App() {
                   {baseCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div><label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma (Ex: TURMA-2026-A)</label><input type="text" value={cohortForm.code} onChange={e => setCohortForm({ ...cohortForm, code: e.target.value })} className="w-full p-2 border rounded" /></div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Professor Responsável</label>
+                <select value={cohortForm.teacherId} onChange={e => setCohortForm({ ...cohortForm, teacherId: e.target.value })} className="w-full p-2 border rounded">
+                  <option value="">-- Selecione o Professor --</option>
+                  {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">Código da Turma</label><input type="text" value={cohortForm.code} onChange={e => setCohortForm({ ...cohortForm, code: e.target.value })} className="w-full p-2 border rounded" /></div>
+                <div><label className="block text-xs font-semibold text-slate-600 mb-1">% Repasse Docente</label><input type="number" value={cohortForm.payoutPercentage} onChange={e => setCohortForm({ ...cohortForm, payoutPercentage: e.target.value })} className="w-full p-2 border rounded" /></div>
+              </div>
               <div><label className="block text-xs font-semibold text-slate-600 mb-1">Preço Base (R$)</label><input type="number" value={cohortForm.basePrice} onChange={e => setCohortForm({ ...cohortForm, basePrice: e.target.value })} className="w-full p-2 border rounded" /></div>
               <div className="pt-2 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowNewCohortModal(false)} className="px-3 py-1.5 border rounded text-slate-600">Cancelar</button>
@@ -1085,7 +1236,6 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL MATRÍCULA COM OPÇÕES FINANCEIRAS */}
       {showQuickEnrollModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
